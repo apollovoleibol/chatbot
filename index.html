@@ -442,7 +442,7 @@
           </button>
 
           <div class="chat-input-container w-full relative">
-            <canvas id="snakeCanvas" class="absolute pointer-events-none" style="top: -1px; left: -1px; z-index: 2; border-radius: 28px;"></canvas>
+            <canvas id="snakeCanvas" class="absolute inset-0 pointer-events-none" style="z-index: 2; border-radius: 28px;"></canvas>
             <div class="chat-glass-bg"></div>
             
             <form id="chatForm" class="chat-input-form">
@@ -608,9 +608,9 @@
   
   <script>
     // =========================================================
-    // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO (NOVO)
+    // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO
     // =========================================================
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwLRvu_5JBhH35hpqlwB37X1R1JkSPOSlWv77bsNLuMCVB8TuXRmt0Dy4MgV0JbyjInIg/exec'; // <-- Mude isso!
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwLRvu_5JBhH35hpqlwB37X1R1JkSPOSlWv77bsNLuMCVB8TuXRmt0Dy4MgV0JbyjInIg/exec';
     const FRONTEND_SECRET = 'apollo-secret-2026';
 
     async function callBackend(action, payload) {
@@ -787,19 +787,20 @@
           });
         });
 
-        // CORREÇÃO 2: Forçando explicitamente a largura e altura no CSS do Canvas
+        // Garantindo que o canvas tenha exatamente o tamanho físico do container
         const dpr = window.devicePixelRatio || 1;
-        if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
-          canvas.width = rect.width * dpr;
-          canvas.height = rect.height * dpr;
-          // Trava a dimensão física para que o browser não estique o elemento 
-          // caso a tela redimensione bruscamente (ex: abrir teclado virtual)
-          canvas.style.width = rect.width + 'px';
-          canvas.style.height = rect.height + 'px';
+        const cw = rect.width;
+        const ch = rect.height;
+
+        if (canvas.width !== Math.floor(cw * dpr) || canvas.height !== Math.floor(ch * dpr)) {
+          canvas.width = cw * dpr;
+          canvas.height = ch * dpr;
+          canvas.style.width = cw + 'px';
+          canvas.style.height = ch + 'px';
         }
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.clearRect(0, 0, cw, ch);
 
         if (currentSnakeOpacity < 0.01) {
           ctx.globalAlpha = 0;
@@ -809,17 +810,14 @@
 
         ctx.globalAlpha = currentSnakeOpacity;
 
-        // CORREÇÃO 3: Correção de math bad de bad Turn 2 para minimizar o gap visível no canto
-        // Intended path outer line follows corner of container boundary, which has radius 28px.
-        // Formula to calculate idealized path corner radius should calculate idealized path center line radius,
-        // which follows idealized straight rectangle boundary, so idealized_r <= idealized_h / 2.
-        // Cap value is correct based on geometry constraints, so constant '28' is incorrect math bad.
-        // Formula for 'r' passed to 'getPathPoint' should be the correct idealized path cap formula:
-        const idealized_path_w = rect.width;
-        const idealized_path_h = rect.height;
-        // Correct capped formula for high-DPI, minimizing visbile gap.
-        const r = Math.min(27.5, idealized_path_h / 2); 
-        const inset = 1.0; 
+        // O SEGREDO DO ALINHAMENTO:
+        const inset = 0.5; 
+        const pathW = cw - 2 * inset;
+        const pathH = ch - 2 * inset;
+        const r = Math.min(27.5, pathH / 2); 
+
+        ctx.lineWidth = 1.0; 
+        ctx.lineCap = 'round';
 
         const cycle = 7000;
         const progress = (nowTime % cycle) / cycle;
@@ -831,8 +829,8 @@
           const segP1 = progress - (i / segments) * snakeFraction;
           const segP2 = progress - ((i + 1) / segments) * snakeFraction;
 
-          const p1 = getPathPoint(segP1, idealized_path_w, idealized_path_h, r);
-          const p2 = getPathPoint(segP2, idealized_path_w, idealized_path_h, r);
+          const p1 = getPathPoint(segP1, pathW, pathH, r);
+          const p2 = getPathPoint(segP2, pathW, pathH, r);
 
           p1.x += inset; p1.y += inset;
           p2.x += inset; p2.y += inset;
@@ -850,8 +848,6 @@
           ctx.beginPath();
           ctx.moveTo(p1.x, p1.y);
           ctx.lineTo(p2.x, p2.y);
-          ctx.lineWidth = 1.0; 
-          ctx.lineCap = 'round';
           ctx.strokeStyle = `rgba(${rC}, ${gC}, ${bC}, ${opacity})`;
           ctx.stroke();
         }
@@ -1133,41 +1129,462 @@
       const html = text
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         .replace(/\n/g, '<br>');
-      const msg = `<div class="flex ${isA```html
-        // ... (dentro da função render())
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, rect.width, rect.height);
+      const msg = `<div class="flex ${isA ? 'justify-start' : 'justify-end'} animate-slide-up w-full">
+        <div class="${isA ? 'bubble-agent' : 'bubble-client'} p-3 max-w-[85%]">
+          <div class="text-[9px] font-bold ${isA ? 'text-apollo-red/60' : 'text-white/60 text-right'} uppercase tracking-widest mb-1">${isA ? 'Assistente' : 'Você'}</div>
+          <div class="text-[15px] leading-relaxed">${html}</div>
+        </div>
+      </div>`;
+      const hist = document.getElementById('chat-history');
+      hist.insertAdjacentHTML('beforeend', msg);
 
-        if (currentSnakeOpacity < 0.01) {
-          ctx.globalAlpha = 0;
-          snakeAnimationId = requestAnimationFrame(render);
+      if (chatAtBottom || sender === 'client') {
+        hist.scrollTop = hist.scrollHeight;
+      } else if (isA) {
+        document.getElementById('newMsgBadge').classList.remove('hidden');
+      }
+    }
+
+    function appendConfirmationCard() {
+      const card = `<div class="flex justify-start animate-slide-up w-full">
+        <div class="booking-card p-4 max-w-[85%]">
+          <div class="flex items-center gap-2.5 mb-3">
+            <div class="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center shadow-[0_4px_12px_rgba(52,211,153,0.4)] flex-shrink-0">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <span class="font-bold text-emerald-700 dark:text-emerald-400 text-[14px]">Vaga garantida!</span>
+          </div>
+          <p class="text-[13px] text-gray-600 dark:text-gray-300 mb-3 leading-relaxed">
+            Seu agendamento foi registrado com sucesso. Confira os detalhes e prepare-se para a aula!
+          </p>
+          <button onclick="reloadApp()" class="w-full py-2.5 rounded-[12px] bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5">
+            Ver detalhes do agendamento
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>`;
+      const hist = document.getElementById('chat-history');
+      hist.insertAdjacentHTML('beforeend', card);
+      hist.scrollTop = hist.scrollHeight;
+      chatAtBottom = true;
+    }
+
+    function setTyping(show) {
+      if (show) {
+        document.getElementById('chat-history').insertAdjacentHTML('beforeend',
+          '<div id="typing" class="flex mt-2"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>');
+        if (chatAtBottom) document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+      } else {
+        document.getElementById('typing')?.remove();
+      }
+    }
+
+    // =========================================================
+    // COUNTDOWN
+    // =========================================================
+    function abrirModalCountdown(ag) {
+      document.getElementById('cdModal').classList.remove('hidden');
+      document.getElementById('cdModal').classList.add('flex', 'open');
+      
+      const turmasAulaTeste = ['escolinha a', 'escolinha b', 'escolinha c', 'pré-equipe', 'pre-equipe', 'equipe armstrong'];
+      const eqNome = (ag.target_team || '').toLowerCase();
+      const isAulaTeste = turmasAulaTeste.some(t => eqNome.includes(t));
+      const subtituloHeader = isAulaTeste ? 'AULA TESTE' : 'TESTE DE INGRESSO';
+      
+      atualizarHeader('Seu agendamento', subtituloHeader, '#EE4036');
+
+      document.getElementById('cdEquipe').textContent = ag.target_team || '—';
+      
+      const localStr = ag.target_location || (ag.detalhes ? ag.detalhes.endereco : null) || '—';
+      document.getElementById('cdLocal').textContent = localStr;
+      document.getElementById('btnOpenLocation').onclick = () => abrirModalLocation(localStr);
+
+      const coachName = ag.detalhes ? ag.detalhes.tecnico : null;
+      const coachWa = ag.detalhes ? ag.detalhes.coach_whatsapp : null;
+      const btnCoach = document.getElementById('btnOpenCoach');
+      
+      if (coachName && coachWa) {
+        document.getElementById('cdCoach').textContent = coachName;
+        btnCoach.classList.remove('hidden');
+        btnCoach.classList.add('flex');
+        btnCoach.onclick = () => abrirModalCoach(coachWa);
+      } else {
+        btnCoach.classList.remove('flex');
+        btnCoach.classList.add('hidden');
+      }
+
+      document.getElementById('cdDataExtenso').textContent = formatarDataExtenso(ag.scheduled_at);
+
+      iniciarTimer(ag.scheduled_at);
+
+      const proxDatas = (ag.detalhes && ag.detalhes.proximas_datas) ? ag.detalhes.proximas_datas : [];
+      const btnReag   = document.getElementById('cdBtnReagendar');
+
+      if (proxDatas.length > 0) {
+        btnReag.style.display = 'block';
+        const container = document.getElementById('cdRadioDates');
+        container.innerHTML = '';
+        proxDatas.forEach((d, i) => {
+          container.innerHTML += `<label class="cd-radio-label"><input type="radio" name="cdNovaData" value="${d.iso}" class="accent-apollo-red" ${i===0?'checked':''}><span>${d.display}</span></label>`;
+        });
+      } else {
+        btnReag.style.display = 'none';
+      }
+
+      btnReag.onclick = () => {
+        btnReag.style.display = 'none';
+        document.getElementById('cdRescheduleForm').style.display = 'block';
+      };
+
+      document.getElementById('cdBtnCancelRs').onclick = () => {
+        document.getElementById('cdRescheduleForm').style.display = 'none';
+        btnReag.style.display = 'block';
+        const statusEl = document.getElementById('cdRescheduleStatus');
+        statusEl.classList.add('hidden');
+        statusEl.textContent = '';
+      };
+
+      document.getElementById('cdBtnGoChat').onclick = () => {
+        document.getElementById('cdModal').classList.add('hidden');
+        iniciarTelaDeChat({ history: messageContext });
+      };
+
+      document.getElementById('cdBtnConfirmRs').onclick = () => {
+        const sel      = document.querySelector('input[name="cdNovaData"]:checked');
+        const statusEl = document.getElementById('cdRescheduleStatus');
+        const btnConf  = document.getElementById('cdBtnConfirmRs');
+        const btnTxt   = document.getElementById('cdBtnConfirmRsText');
+
+        if (!sel) {
+          statusEl.textContent = 'Selecione uma data para continuar.';
+          statusEl.style.background = 'rgba(239,68,68,0.1)';
+          statusEl.style.color = '#ef4444';
+          statusEl.classList.remove('hidden');
           return;
         }
 
-        ctx.globalAlpha = currentSnakeOpacity;
+        btnConf.disabled = true;
+        btnTxt.innerHTML = '<span class="btn-spinner" style="width:14px;height:14px;"></span>';
+        statusEl.classList.add('hidden');
 
-        // CORREÇÃO 3: Correção de math bad de bad Turn 2 para minimizar o gap visível no canto
-        // Intended path outer line follows corner of container boundary, which has radius 28px.
-        // Formula to calculate idealized path corner radius should calculate idealized path center line radius,
-        // which follows idealized straight rectangle boundary, so idealized_r <= idealized_h / 2.
-        // Cap value is correct based on geometry constraints, so constant '28' is incorrect math bad.
-        // Formula for 'r' passed to 'getPathPoint' should be the correct idealized path cap formula:
-        const idealized_path_w = rect.width;
-        const idealized_path_h = rect.height;
-        // Correct capped formula for high-DPI, minimizing visbile gap.
-        const r = Math.min(27.5, idealized_path_h / 2); 
-        const inset = 1.0; 
+        callBackend('processarReagendamentoDireto', { idAgendamento: ag.id, whatsapp: userData.whatsapp, novaDataISO: sel.value })
+          .then(res => {
+            btnConf.disabled = false;
+            btnTxt.textContent = 'Confirmar';
+            if (res && res.sucesso) {
+              reloadApp();
+            } else {
+              const msg = (res && res.erro) ? res.erro : 'Não foi possível reagendar. Tente novamente.';
+              statusEl.textContent = msg;
+              statusEl.style.background = 'rgba(239,68,68,0.1)';
+              statusEl.style.color = '#ef4444';
+              statusEl.classList.remove('hidden');
+            }
+          })
+          .catch(err => {
+            console.error('[ERRO Reagendamento]', err);
+            btnConf.disabled = false;
+            btnTxt.textContent = 'Confirmar';
+            statusEl.textContent = 'Erro de comunicação. Tente novamente.';
+            statusEl.style.background = 'rgba(239,68,68,0.1)';
+            statusEl.style.color = '#ef4444';
+            statusEl.classList.remove('hidden');
+          });
+      };
+    }
 
-        // ... (Segmentos do loop)
-        const snakeFraction = 0.20; 
-        const segments = 120; 
+    function iniciarTimer(dt) {
+      const timerEl = document.getElementById('cdTimer');
+      if (cdInterval) clearInterval(cdInterval);
+      function tick() {
+        const dist = new Date(dt).getTime() - Date.now();
+        if (isNaN(dist) || dist <= 0) {
+          timerEl.textContent = 'Chegou a hora!';
+          clearInterval(cdInterval);
+          return;
+        }
+        const h = Math.floor(dist / 3600000);
+        const m = Math.floor((dist % 3600000) / 60000);
+        const s = Math.floor((dist % 60000) / 1000);
+        timerEl.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      }
+      tick();
+      cdInterval = setInterval(tick, 1000);
+    }
 
-        for (let i = 0; i < segments; i++) {
-          const segP1 = progress - (i / segments) * snakeFraction;
-          const segP2 = progress - ((i + 1) / segments) * snakeFraction;
+    // =========================================================
+    // TIMELINE
+    // =========================================================
+    const SVG_CHECK  = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`;
+    const SVG_LOCK   = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`;
+    const SVG_UNLOCK = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>`;
+    const SVG_CROSS  = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
 
-          const p1 = getPathPoint(segP1, idealized_path_w, idealized_path_h, r);
-          const p2 = getPathPoint(segP2, idealized_path_w, idealized_path_h, r);
+    function abrirTimeline(dados) {
+      document.getElementById('timeline-view').classList.remove('hidden');
+      atualizarHeader('Assistente Apollo', 'STATUS DO ATLETA', '#EE4036');
 
-          p1.x += inset; p1.y += inset;
-          p2.x += inset; p2.y += inset;
+      const status      = (dados.statusTryout || 'pending').toLowerCase();
+      const isCadastrado = dados.isCadastrado || false;
+
+      const steps = [1,2,3,4,5].map(i => ({
+        w: document.getElementById('stepWrapper' + i),
+        d: document.getElementById('dot' + i)
+      }));
+
+      steps.forEach(s => {
+        s.w.classList.remove('active','completed','blocked','loading','error','pulsing','revealed');
+        s.d.innerHTML = '';
+      });
+
+      const setCompleted = i => { steps[i].w.classList.add('completed'); steps[i].d.innerHTML = SVG_CHECK; };
+      const setBlocked   = i => { steps[i].w.classList.add('blocked');   steps[i].d.innerHTML = SVG_LOCK; };
+
+      setCompleted(0);
+      setBlocked(2); setBlocked(3); setBlocked(4);
+      let targetDotId = 'dot2';
+
+      if (isCadastrado) {
+        steps.forEach((_, i) => setCompleted(i));
+        targetDotId = 'dot5';
+        document.getElementById('tlMensagemFinal').classList.remove('hidden');
+        document.getElementById('tlMensagemFinal').classList.add('flex');
+        window.launchConfetti();
+      } else if (status === 'approved' || status === 'aprovado') {
+        setCompleted(1); setCompleted(2);
+        steps[3].w.classList.add('active','pulsing'); steps[3].d.innerHTML = SVG_UNLOCK;
+        targetDotId = 'dot4';
+      } else if (status === 'rejected' || status === 'reprovado') {
+        setCompleted(1);
+        steps[2].w.classList.add('error'); steps[2].d.innerHTML = SVG_CROSS;
+        targetDotId = 'dot3';
+      } else {
+        steps[1].w.classList.add('loading');
+        targetDotId = 'dot2';
+      }
+
+      steps.forEach((s, i) => setTimeout(() => s.w.classList.add('revealed'), (i + 1) * 300));
+
+      setTimeout(() => {
+        const wrapper  = document.getElementById('timelineNodesWrapper');
+        const firstDot = document.getElementById('dot1');
+        const target   = document.getElementById(targetDotId);
+        const lastDot  = document.getElementById('dot5');
+        const bgLine   = document.getElementById('journeyLineBg');
+        const fillLine = document.getElementById('journeyLineFill');
+        if (wrapper && firstDot && target && lastDot) {
+          const wTop   = wrapper.getBoundingClientRect().top;
+          const startY = firstDot.getBoundingClientRect().top + (firstDot.offsetHeight / 2) - wTop;
+          const targetY= target.getBoundingClientRect().top + (target.offsetHeight / 2) - wTop;
+          const lastY  = lastDot.getBoundingClientRect().top + (lastDot.offsetHeight / 2) - wTop;
+          const bgH    = Math.max(0, lastY - startY);
+          bgLine.style.top = startY + 'px';  bgLine.style.height = bgH + 'px';
+          fillLine.style.top = startY + 'px'; fillLine.style.height = bgH + 'px';
+          const fillH = Math.max(0, targetY - startY);
+          const clip  = bgH > 0 ? 100 - ((fillH / bgH) * 100) : 100;
+          fillLine.style.clipPath = 'inset(0 0 ' + clip + '% 0)';
+          fillLine.style.webkitClipPath = 'inset(0 0 ' + clip + '% 0)';
+        }
+      }, 600);
+    }
+
+    // =========================================================
+    // CADASTRO WIZARD
+    // =========================================================
+    function iniciarCadastro() {
+      if (!document.getElementById('stepWrapper4').classList.contains('pulsing')) return;
+      document.getElementById('timeline-view').classList.add('hidden');
+      document.getElementById('cadastro-view').classList.remove('hidden');
+      document.getElementById('cadastro-view').classList.add('flex');
+      atualizarHeader('Assistente Apollo', 'CADASTRO GAV', null);
+      if (pages.length > 0 && historyStack.length === 0) {
+        historyStack.push(pages[0].id);
+        renderPage(pages[0].id);
+      }
+    }
+
+    document.getElementById('btnCancelForm').onclick = () => {
+      document.getElementById('cadastro-view').classList.add('hidden');
+      document.getElementById('cadastro-view').classList.remove('flex');
+      document.getElementById('timeline-view').classList.remove('hidden');
+      atualizarHeader('Assistente Apollo', 'STATUS DO ATLETA', '#EE4036');
+    };
+
+    function finalizarCadastroVisual() {
+      document.getElementById('cadastro-view').classList.add('hidden');
+      document.getElementById('cadastro-view').classList.remove('flex');
+      document.getElementById('timeline-view').classList.remove('hidden');
+      atualizarHeader('Assistente Apollo', 'STATUS DO ATLETA', '#EE4036');
+
+      const sw4 = document.getElementById('stepWrapper4');
+      sw4.classList.remove('pulsing','active');
+      sw4.classList.add('completed');
+      document.getElementById('dot4').innerHTML = SVG_CHECK;
+
+      const fillLine = document.getElementById('journeyLineFill');
+      fillLine.style.clipPath = 'inset(0 0 0% 0)';
+      fillLine.style.webkitClipPath = 'inset(0 0 0% 0)';
+
+      setTimeout(() => {
+        const sw5 = document.getElementById('stepWrapper5');
+        sw5.classList.remove('blocked');
+        sw5.classList.add('completed');
+        document.getElementById('dot5').innerHTML = SVG_CHECK;
+        document.getElementById('tlMensagemFinal').classList.remove('hidden');
+        document.getElementById('tlMensagemFinal').classList.add('flex');
+        window.launchConfetti();
+      }, 1500);
+    }
+
+    // =========================================================
+    // FORM JSON E WIZARD
+    // =========================================================
+    const formJSON = {
+      "items": [
+        { "id": 1833521539, "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
+        { "id": 1068657778, "title": "QUAL É O SEU PERFIL?", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Sou atleta da categoria adulta" }, { "value": "Sou pai/mãe de um atleta menor de idade" }] },
+        { "id": 518240166, "title": "DADOS DO ATLETA", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
+        { "id": 916066996, "title": "Nome do atleta", "type": "TEXT", "isRequired": true },
+        { "id": 1724645339, "title": "CPF do(a) atleta", "type": "TEXT", "isRequired": true },
+        { "id": 1250955793, "title": "RG do(a) atleta", "type": "TEXT", "isRequired": true },
+        { "id": 2137007236, "title": "Data de nascimento", "type": "DATE", "isRequired": true },
+        { "id": 449999411, "title": "E-mail", "type": "TEXT", "isRequired": true },
+        { "id": 620467229, "title": "Endereço completo", "type": "PARAGRAPH_TEXT", "isRequired": true },
+        { "id": 539660292, "title": "WhatsApp", "type": "TEXT", "isRequired": true },
+        { "id": 5282445, "title": "Contato de emergência", "type": "TEXT", "isRequired": true },
+        { "id": 1985418252, "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
+        { "id": 1643391030, "title": "TURMA/EQUIPE", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [
+          { "value": "ESCOLINHA A", "goToSectionId": 586732454 },
+          { "value": "Equipe Feminino", "goToSectionId": 1878004539 },
+          { "value": "Equipe Armstrong", "goToSectionId": 543596760 }
+        ]},
+        { "id": 586732454, "title": "PLANO DE AULAS", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
+        { "id": 2076825410, "title": "MENSALIDADE", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "1x por semana" }, { "value": "2x por semana" }] },
+        { "id": 1580742689, "title": "Banco", "type": "TEXT", "isRequired": true },
+        { "id": 860750697, "title": "DIAS", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Terças e Quintas" }, { "value": "Sábados" }] },
+        { "id": 1878004539, "title": "COMPETITIVO", "type": "PAGE_BREAK", "navigationType": "GO_TO_PAGE", "goToSectionId": 1485795870 },
+        { "id": 645956080, "title": "MENSALIDADE", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Mensalidade A" }, { "value": "Mensalidade B" }] },
+        { "id": 1485795870, "title": "RESPONSÁVEIS", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
+        { "id": 1364223727, "title": "Nome do responsável", "type": "TEXT", "isRequired": true },
+        { "id": 1847314181, "title": "ANAMNESE", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
+        { "id": 1665643726, "title": "Estatura", "type": "TEXT", "isRequired": true },
+        { "id": 1953537087, "title": "Peso", "type": "TEXT", "isRequired": true },
+        { "id": 77780229, "title": "FINALIZAÇÃO", "type": "PAGE_BREAK", "navigationType": "SUBMIT" },
+        { "id": 537616621, "title": "Declaro concordância", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Estou ciente e concordo." }] }
+      ]
+    };
+
+    const pages = [];
+    let currentPageObj = null;
+    let globalFormData = {};
+    let historyStack   = [];
+
+    formJSON.items.forEach(item => {
+      if (item.type === 'PAGE_BREAK') {
+        pages.push({ id: item.id, title: item.title || '', navigationType: item.navigationType, goToSectionId: item.goToSectionId, items: [] });
+      } else if (pages.length > 0) {
+        pages[pages.length - 1].items.push(item);
+      }
+    });
+
+    function atualizarProgressoForm(pageId) {
+      const idx     = pages.findIndex(p => p.id === pageId);
+      const pct     = pages.length > 1 ? Math.round((idx / (pages.length - 1)) * 100) : 100;
+      document.getElementById('formProgressFill').style.width = pct + '%';
+      document.getElementById('formProgressText').textContent = 'Etapa ' + (idx + 1) + ' de ' + pages.length;
+    }
+
+    function renderPage(pageId) {
+      const page   = pages.find(p => p.id === pageId);
+      const formEl = document.getElementById('dynamicForm');
+      formEl.innerHTML = '';
+      document.getElementById('sectionTitle').textContent = page.title || '';
+
+      atualizarProgressoForm(pageId);
+
+      page.items.forEach(item => {
+        let html = `<div class="w-full animate-slide-up" data-id="${item.id}">
+          <label class="block text-[11px] font-bold text-apollo-navy/50 dark:text-gray-400 mb-2 uppercase leading-relaxed tracking-wide">${item.title}</label>`;
+
+        if (item.type === 'MULTIPLE_CHOICE') {
+          item.choices.forEach(c => {
+            html += `<label class="cd-radio-label"><input type="radio" name="f_${item.id}" value="${c.value}" ${c.goToSectionId ? `data-goto="${c.goToSectionId}"`:''} class="accent-apollo-red flex-shrink-0 mt-0.5"><span>${c.value}</span></label>`;
+          });
+        } else if (item.type === 'PARAGRAPH_TEXT') {
+          html += `<textarea name="f_${item.id}" rows="3" class="glass-input w-full px-5 py-3.5 rounded-[18px] resize-none"></textarea>`;
+        } else if (item.type === 'DATE') {
+          html += `<input type="date" name="f_${item.id}" class="glass-input w-full h-[54px] px-5 rounded-[18px]">`;
+        } else {
+          html += `<input type="text" name="f_${item.id}" class="glass-input w-full h-[54px] px-5 rounded-[18px]">`;
+        }
+        formEl.insertAdjacentHTML('beforeend', html + `<p class="error-msg hidden text-[10px] text-apollo-red mt-1 ml-1">Campo obrigatório.</p></div>`);
+      });
+
+      document.getElementById('btnBack').style.display = historyStack.length > 1 ? 'flex' : 'none';
+      document.getElementById('btnNextText').textContent = (page.navigationType === 'SUBMIT') ? 'Finalizar' : 'Continuar';
+      document.getElementById('formScrollArea').scrollTop = 0;
+    }
+
+    document.getElementById('btnNext').addEventListener('click', () => {
+      const page    = pages.find(p => p.id === historyStack[historyStack.length - 1]);
+      let nextId    = null;
+      let isValid   = true;
+
+      page.items.forEach(item => {
+        const el  = document.querySelector(`[name="f_${item.id}"]`);
+        const err = el ? el.closest('[data-id]').querySelector('.error-msg') : null;
+        let val = '';
+        if (item.type === 'MULTIPLE_CHOICE') {
+          const sel = document.querySelector(`[name="f_${item.id}"]:checked`);
+          if (sel) { val = sel.value; if (sel.dataset.goto) nextId = parseInt(sel.dataset.goto); }
+        } else {
+          val = el ? el.value.trim() : '';
+        }
+        if (item.isRequired && !val) {
+          isValid = false;
+          if (el)  el.classList.add('field-error');
+          if (err) err.classList.remove('hidden');
+        } else {
+          if (el)  el.classList.remove('field-error');
+          if (err) err.classList.add('hidden');
+          if (val) globalFormData[item.id] = val;
+        }
+      });
+
+      if (!isValid) return;
+
+      if (!nextId) {
+        if (page.goToSectionId) nextId = page.goToSectionId;
+        else nextId = pages[pages.indexOf(page) + 1]?.id;
+      }
+
+      if (nextId) {
+        historyStack.push(nextId);
+        renderPage(nextId);
+      } else {
+        submitData();
+      }
+    });
+
+    document.getElementById('btnBack').onclick = () => {
+      historyStack.pop();
+      renderPage(historyStack[historyStack.length - 1]);
+    };
+
+    function submitData() {
+      const btn     = document.getElementById('btnNext');
+      const btnText = document.getElementById('btnNextText');
+      btn.disabled  = true;
+      btnText.innerHTML = '<span class="btn-spinner"></span> Enviando...';
+
+      callBackend('processarCadastro', { formData: globalFormData })
+        .then(finalizarCadastroVisual)
+        .catch(err => {
+          console.error('[ERRO Cadastro]', err);
+          btn.disabled = false;
+          btnText.textContent = 'Tentar novamente';
+        });
+    }
+  </script>
+</body>
+</html>
