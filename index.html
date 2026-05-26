@@ -442,7 +442,7 @@
           </button>
 
           <div class="chat-input-container w-full relative">
-            <canvas id="snakeCanvas" class="absolute pointer-events-none" style="top: -1px; left: -1px; right: -1px; bottom: -1px; z-index: 2; border-radius: 28px;"></canvas>
+            <canvas id="snakeCanvas" class="absolute pointer-events-none" style="top: -1px; left: -1px; z-index: 2; border-radius: 28px;"></canvas>
             <div class="chat-glass-bg"></div>
             
             <form id="chatForm" class="chat-input-form">
@@ -608,9 +608,9 @@
   
   <script>
     // =========================================================
-    // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO (NOVO)
+    // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO
     // =========================================================
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwLRvu_5JBhH35hpqlwB37X1R1JkSPOSlWv77bsNLuMCVB8TuXRmt0Dy4MgV0JbyjInIg/exec'; // <-- Mude isso!
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwLRvu_5JBhH35hpqlwB37X1R1JkSPOSlWv77bsNLuMCVB8TuXRmt0Dy4MgV0JbyjInIg/exec';
     const FRONTEND_SECRET = 'apollo-secret-2026';
 
     async function callBackend(action, payload) {
@@ -730,7 +730,7 @@
     let lastKeystrokeTime = 0;
 
     // =========================================================
-    // SNAKE BORDER E ONDAS DE FUNDO
+    // SNAKE BORDER E ONDAS DE FUNDO (CORRIGIDO)
     // =========================================================
     let snakeAnimationId = null;
     function startSnakeAnimation() {
@@ -787,14 +787,22 @@
           });
         });
 
+        // CORREÇÃO 2: Forçando explicitamente a largura e altura no CSS do Canvas
         const dpr = window.devicePixelRatio || 1;
-        if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
-          canvas.width = rect.width * dpr;
-          canvas.height = rect.height * dpr;
+        const cw = rect.width + 2; // +2 para compensar o 'left: -1px' e 'top: -1px'
+        const ch = rect.height + 2;
+
+        if (canvas.width !== Math.floor(cw * dpr) || canvas.height !== Math.floor(ch * dpr)) {
+          canvas.width = cw * dpr;
+          canvas.height = ch * dpr;
+          // Trava a dimensão física para que o browser não estique o elemento 
+          // caso a tela redimensione bruscamente (ex: abrir teclado virtual)
+          canvas.style.width = cw + 'px';
+          canvas.style.height = ch + 'px';
         }
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.clearRect(0, 0, cw, ch);
 
         if (currentSnakeOpacity < 0.01) {
           ctx.globalAlpha = 0;
@@ -804,10 +812,10 @@
 
         ctx.globalAlpha = currentSnakeOpacity;
 
-        const w = rect.width;
-        const h = rect.height;
-        const r = Math.min(28, h / 2) - 0.5; 
-        const inset = 0.5; 
+        const w = cw;
+        const h = ch;
+        const r = Math.min(28, rect.height / 2) - 0.5; // Raio amarrado à altura do container
+        const inset = 1.0; // Espaçamento da borda
 
         ctx.lineWidth = 1.0; 
         ctx.lineCap = 'round';
@@ -1309,7 +1317,7 @@
     // TIMELINE
     // =========================================================
     const SVG_CHECK  = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`;
-    const SVG_LOCK   = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`;
+    const SVG_LOCK   = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`;
     const SVG_UNLOCK = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>`;
     const SVG_CROSS  = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
 
