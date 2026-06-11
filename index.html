@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, interactive-widget=resizes-content">
   <title>Apollo Voleibol | Atendimento</title>
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-  
+
   <script>
     (function() {
       var h = new Date().getHours();
@@ -132,7 +132,7 @@
     ============================================================ */
     #waModal, #coachModal, #locationModal { display: none; position: absolute; inset: 0; z-index: 100; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); }
     #waModal.open, #coachModal.open, #locationModal.open { display: flex; }
-    
+
     .modal-box { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.6); border-radius: 24px; padding: 32px 24px 24px; max-width: 320px; width: 90%; box-shadow: 0 24px 48px rgba(0,0,0,0.2); animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
     .dark .modal-box { background: rgba(30,30,35,0.85); border-color: rgba(255,255,255,0.1); }
     .modal-icon { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #fef08a 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 28px; box-shadow: 0 8px 16px rgba(245,158,11,0.3); }
@@ -433,7 +433,7 @@
         </div>
 
         <div class="p-4 shrink-0 flex flex-col items-end w-full relative z-10 pb-6 gap-3">
-          
+
           <button id="scrollToBottomBtn" class="hidden relative self-end mr-[12px]" onclick="scrollToBottom(true)" title="Ir para o fim">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
@@ -444,12 +444,12 @@
           <div class="chat-input-container w-full relative">
             <canvas id="snakeCanvas" class="absolute inset-0 pointer-events-none" style="z-index: 2; border-radius: 28px;"></canvas>
             <div class="chat-glass-bg"></div>
-            
+
             <form id="chatForm" class="chat-input-form">
               <textarea id="chatInput" rows="1"
                 placeholder="Escreva uma mensagem..."
                 class="chat-input-transparent flex-1 py-3.5 px-4 text-[16px] resize-none min-h-[52px] max-h-[120px] leading-snug block"></textarea>
-              
+
               <button type="submit" id="sendBtn" class="btn relative z-10 w-[52px] h-[52px] rounded-full bg-gradient-to-br from-[#FF554A] to-[#EE4036] flex items-center justify-center text-white shrink-0 shadow-lg active:scale-90 transition-transform">
                 <svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
               </button>
@@ -605,7 +605,7 @@
 
     </main>
   </div>
-  
+
   <script>
     // =========================================================
     // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO
@@ -628,7 +628,7 @@
       if (!response.ok) throw new Error('Falha na comunicação de rede com a API.');
       const data = await response.json();
       if (!data.sucesso) throw new Error(data.erro || 'Erro interno no backend.');
-      
+
       return data.dados;
     }
 
@@ -765,7 +765,7 @@
         }
 
         const nowTime = Date.now();
-        
+
         if (nowTime - lastKeystrokeTime > 1000) targetSnakeOpacity = 0.0;
         if (nowTime - lastKeystrokeTime > 200)  targetTypingHeat = Math.max(0.0, targetTypingHeat - 0.01);
 
@@ -774,7 +774,7 @@
 
         const waves = document.querySelectorAll('.wave-blob');
         const isDark = document.documentElement.classList.contains('dark');
-        
+
         const bScale = 0.6, mScale = 1.5;
         const bOp = isDark ? 0.15 : 0.2, mOp = isDark ? 0.6 : 0.8;
         const bSpd = 1.0, mSpd = 3.5;
@@ -811,19 +811,19 @@
         ctx.globalAlpha = currentSnakeOpacity;
 
         // O SEGREDO DO ALINHAMENTO:
-        const inset = 0.5; 
+        const inset = 0.5;
         const pathW = cw - 2 * inset;
         const pathH = ch - 2 * inset;
-        const r = Math.min(27.5, pathH / 2); 
+        const r = Math.min(27.5, pathH / 2);
 
-        ctx.lineWidth = 1.0; 
+        ctx.lineWidth = 1.0;
         ctx.lineCap = 'round';
 
         const cycle = 7000;
         const progress = (nowTime % cycle) / cycle;
 
-        const snakeFraction = 0.20; 
-        const segments = 120; 
+        const snakeFraction = 0.20;
+        const segments = 120;
 
         for (let i = 0; i < segments; i++) {
           const segP1 = progress - (i / segments) * snakeFraction;
@@ -837,7 +837,7 @@
 
           const t = i / segments;
           let opacity = 1;
-          
+
           if (t < 0.15) opacity = t / 0.15;
           else if (t > 0.6) opacity = 1 - ((t - 0.6) / 0.4);
 
@@ -918,19 +918,19 @@
       document.getElementById('cdModal').classList.add('hidden');
       document.getElementById('cdModal').classList.remove('flex', 'open');
       document.getElementById('timeline-view').classList.add('hidden');
-      
+
       document.getElementById('pre-chat-view').classList.remove('hidden');
-      
+
       document.getElementById('chat-history').innerHTML = '';
       messageContext = [];
       chatAtBottom = true;
-      
+
       const btn = document.getElementById('btnSubmitForm');
       btn.disabled = false;
       document.getElementById('userName').disabled = false;
       document.getElementById('userWhatsapp').disabled = false;
       document.getElementById('btnText').textContent = 'Acessar';
-      
+
       btn.click();
     }
 
@@ -981,18 +981,41 @@
         });
     };
 
+    // =========================================================
+    // ROTEAMENTO INICIAL — FIX TIMEZONE
+    // new Date(string) sem offset interpreta como UTC, deslocando
+    // 3h para usuários no Brasil. Aqui usamos parse manual via
+    // regex para construir a data no fuso local do navegador.
+    // =========================================================
     function processarTelaInicial(dados) {
       document.getElementById('pre-chat-view').classList.add('hidden');
+
       if (dados.agendamento && dados.agendamento.scheduled_at) {
-        const agTime = new Date(dados.agendamento.scheduled_at).getTime();
+        var agScheduled = dados.agendamento.scheduled_at;
+        var agTime = NaN;
+        var match = agScheduled.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+        if (match) {
+          agTime = new Date(
+            parseInt(match[1]),
+            parseInt(match[2]) - 1,
+            parseInt(match[3]),
+            parseInt(match[4]),
+            parseInt(match[5])
+          ).getTime();
+        }
+
         if (!isNaN(agTime) && agTime > Date.now()) {
           abrirModalCountdown(dados.agendamento);
-        } else {
-          abrirTimeline(dados);
+          return;
         }
-      } else {
-        iniciarTelaDeChat(dados);
+
+        if (dados.agendamento.status === 'CONFIRMED') {
+          abrirTimeline(dados);
+          return;
+        }
       }
+
+      iniciarTelaDeChat(dados);
     }
 
     // =========================================================
@@ -1034,7 +1057,7 @@
       document.getElementById('chat-view').classList.remove('hidden');
       document.getElementById('chat-view').classList.add('flex');
       atualizarHeader('Assistente Apollo', 'WHATSAPP', '#25D366');
-      
+
       setTimeout(() => startSnakeAnimation(), 100);
 
       const firstName = userData.name.split(' ')[0];
@@ -1054,13 +1077,13 @@
       }
 
       const tx = document.getElementById('chatInput');
-      
+
       tx.addEventListener('input', function() {
         this.style.height = '52px';
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        
+
         if (this.value.trim().length > 0) {
-          targetTypingHeat = Math.min(1.0, targetTypingHeat + 0.15); 
+          targetTypingHeat = Math.min(1.0, targetTypingHeat + 0.15);
           targetSnakeOpacity = 1.0;
           lastKeystrokeTime = Date.now();
         } else {
@@ -1104,10 +1127,10 @@
           enableInput();
           const botText    = (response && typeof response === 'object') ? response.text    : response;
           const doConfetti = (response && typeof response === 'object') ? !!response.confetti : false;
-          
+
           appendMessage('agent', botText);
           messageContext.push({ role: 'model', parts: [{ text: botText }] });
-          
+
           if (doConfetti) {
             setTimeout(() => window.launchConfetti(), 600);
             setTimeout(() => appendConfirmationCard(), 1200);
@@ -1185,16 +1208,16 @@
     function abrirModalCountdown(ag) {
       document.getElementById('cdModal').classList.remove('hidden');
       document.getElementById('cdModal').classList.add('flex', 'open');
-      
+
       const turmasAulaTeste = ['escolinha a', 'escolinha b', 'escolinha c', 'pré-equipe', 'pre-equipe', 'equipe armstrong'];
       const eqNome = (ag.target_team || '').toLowerCase();
       const isAulaTeste = turmasAulaTeste.some(t => eqNome.includes(t));
       const subtituloHeader = isAulaTeste ? 'AULA TESTE' : 'TESTE DE INGRESSO';
-      
+
       atualizarHeader('Seu agendamento', subtituloHeader, '#EE4036');
 
       document.getElementById('cdEquipe').textContent = ag.target_team || '—';
-      
+
       const localStr = ag.target_location || (ag.detalhes ? ag.detalhes.endereco : null) || '—';
       document.getElementById('cdLocal').textContent = localStr;
       document.getElementById('btnOpenLocation').onclick = () => abrirModalLocation(localStr);
@@ -1202,7 +1225,7 @@
       const coachName = ag.detalhes ? ag.detalhes.tecnico : null;
       const coachWa = ag.detalhes ? ag.detalhes.coach_whatsapp : null;
       const btnCoach = document.getElementById('btnOpenCoach');
-      
+
       if (coachName && coachWa) {
         document.getElementById('cdCoach').textContent = coachName;
         btnCoach.classList.remove('hidden');
@@ -1587,4 +1610,3 @@
     }
   </script>
 </body>
-</html>
