@@ -707,10 +707,25 @@
       container.title = (subtitulo === 'WHATSAPP') ? 'Falar com atendente humano' : '';
     }
 
+    function formatarNome(nomeCompleto) {
+      if (!nomeCompleto) return '';
+      var prep = ['de','da','do','das','dos','e','em','a','o'];
+      return nomeCompleto.trim().replace(/\s+/g, ' ').split(' ').map(function(w, i) {
+        var wl = w.toLowerCase();
+        return (i > 0 && prep.indexOf(wl) !== -1) ? wl : wl.charAt(0).toUpperCase() + wl.slice(1);
+      }).join(' ');
+    }
+
+    function parseLocalISO(isoString) {
+      var match = (isoString || '').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (!match) return null;
+      return new Date(parseInt(match[1]), parseInt(match[2])-1, parseInt(match[3]), parseInt(match[4]), parseInt(match[5]));
+    }
+
     function formatarDataExtenso(isoString) {
       try {
-        const d = new Date(isoString);
-        if (isNaN(d.getTime())) return '';
+        var d = parseLocalISO(isoString);
+        if (!d || isNaN(d.getTime())) return '';
         const data = d.toLocaleDateString('pt-BR', {
           weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
           timeZone: 'America/Sao_Paulo'
@@ -1004,12 +1019,12 @@
           ).getTime();
         }
 
-        if (!isNaN(agTime) && agTime > Date.now()) {
+        if (!isNaN(agTime) && agTime > Date.now() && dados.agendamento.status !== 'IN_REGISTRATION') {
           abrirModalCountdown(dados.agendamento);
           return;
         }
 
-        if (dados.agendamento.status === 'CONFIRMED') {
+        if (dados.agendamento.status === 'CONFIRMED' || dados.agendamento.status === 'IN_REGISTRATION') {
           abrirTimeline(dados);
           return;
         }
@@ -1060,7 +1075,7 @@
 
       setTimeout(() => startSnakeAnimation(), 100);
 
-      const firstName = userData.name.split(' ')[0];
+      const firstName = formatarNome(userData.name).split(' ')[0];
 
       const greet = `E aí, ${firstName}! 🏐\n\nEu sou o assistente de inteligência artificial da Apollo Voleibol, e posso te ajudar a:\n\n✔️ Agendar teste (adultos nível competitivo e categorias de base)\n✔️ Agendar aula experimental (crianças, adolescentes e adultos iniciantes)\n✔️ Reagendar data de aula experimental/teste de ingresso\n✔️ Conhecer nosso quadro completo de equipes\n\nMe diz como você quer prosseguir!`;
 
@@ -1324,8 +1339,10 @@
     function iniciarTimer(dt) {
       const timerEl = document.getElementById('cdTimer');
       if (cdInterval) clearInterval(cdInterval);
+      var parsed = parseLocalISO(dt);
+      var targetTime = parsed ? parsed.getTime() : NaN;
       function tick() {
-        const dist = new Date(dt).getTime() - Date.now();
+        const dist = targetTime - Date.now();
         if (isNaN(dist) || dist <= 0) {
           timerEl.textContent = 'Chegou a hora!';
           clearInterval(cdInterval);
@@ -1378,7 +1395,7 @@
         document.getElementById('tlMensagemFinal').classList.remove('hidden');
         document.getElementById('tlMensagemFinal').classList.add('flex');
         window.launchConfetti();
-      } else if (status === 'approved' || status === 'aprovado') {
+      } else if (status === 'approved' || status === 'aprovado' || status === 'in_registration') {
         setCompleted(1); setCompleted(2);
         steps[3].w.classList.add('active','pulsing'); steps[3].d.innerHTML = SVG_UNLOCK;
         targetDotId = 'dot4';
