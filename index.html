@@ -175,7 +175,7 @@
     .dark .tl-step-wrapper.blocked .tl-dot { color: #4b5563; }
     .tl-step-wrapper.loading .tl-dot { border-top-color: var(--step-color); color: transparent; animation: spin 1s linear infinite; }
     .tl-step-wrapper.error .tl-dot { background: #ef4444; color: white; box-shadow: 0 0 15px rgba(239,68,68,0.5); }
-    .tl-card { background: rgba(255,255,255,0.6); padding: 20px; border-radius: 0 24px 24px 24px; flex: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: all 0.3s; }
+    .tl-card { background: rgba(255,255,255,0.6); border: none; padding: 20px; border-radius: 0 24px 24px 24px; flex: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: all 0.3s; }
     .dark .tl-card { background: rgba(255,255,255,0.03); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     .tl-step-wrapper.active .tl-card, .tl-step-wrapper.completed .tl-card { background: rgba(255,255,255,0.9); }
     .dark .tl-step-wrapper.active .tl-card, .dark .tl-step-wrapper.completed .tl-card { background: rgba(255,255,255,0.08); }
@@ -189,6 +189,8 @@
     .dark .tl-step-wrapper.active .tl-desc { color: rgba(255,255,255,0.8); }
     .tl-step-wrapper.pulsing .tl-card { animation: cardPulse 2s infinite; cursor: pointer; }
     @keyframes cardPulse { 0% { box-shadow: 0 0 0 0 rgba(238,64,54,0.4); } 70% { box-shadow: 0 0 0 15px rgba(238,64,54,0); } 100% { box-shadow: 0 0 0 0 rgba(238,64,54,0); } }
+    .tl-cta-btn { display: none; }
+    .tl-step-wrapper.active .tl-cta-btn { display: flex; }
 
     /* ============================================================
        FORMULÁRIO WIZARD
@@ -509,52 +511,51 @@
 
       <div id="timeline-view" class="hidden absolute inset-0 z-40 overflow-y-auto">
         <div class="journey-container">
-          <div class="text-center mb-10 animate-slide-up">
-            <h2 class="text-[24px] font-bold text-apollo-navy dark:text-white tracking-tight">Jornada do Atleta</h2>
-            <p class="text-[14px] text-gray-500 dark:text-gray-400 mt-2">Acompanhe seu progresso na Apollo</p>
-          </div>
-
           <div id="timelineNodesWrapper" class="timeline-nodes-wrapper">
             <div id="journeyLineBg" class="timeline-track-bg"></div>
             <div id="journeyLineFill" class="timeline-track-fill"></div>
 
-            <div id="stepWrapper1" class="tl-step-wrapper" style="--step-color: #25D366;">
+            <div id="stepWrapper1" class="tl-step-wrapper" style="--step-color: #4F46E5;">
               <div id="dot1" class="tl-dot"></div>
               <div class="tl-card">
                 <h3 class="tl-title">Agendamento</h3>
-                <p class="tl-desc">Vaga garantida para avaliação.</p>
+                <p class="tl-desc">Seu interesse foi registrado com sucesso! O primeiro passo para a lua foi dado com a reserva da sua vaga em nosso sistema.</p>
               </div>
             </div>
 
-            <div id="stepWrapper2" class="tl-step-wrapper" style="--step-color: #f59e0b;">
+            <div id="stepWrapper2" class="tl-step-wrapper" style="--step-color: #7745B9;">
               <div id="dot2" class="tl-dot"></div>
               <div class="tl-card">
-                <h3 class="tl-title">Participação</h3>
-                <p class="tl-desc">Aguardando o dia do teste/aula.</p>
+                <h3 class="tl-title">Comparecimento</h3>
+                <p class="tl-desc">Aqui, é o momento em que o técnico da equipe te recepcionará no ginásio e conduzirá o seu teste/aula experimental.</p>
               </div>
             </div>
 
-            <div id="stepWrapper3" class="tl-step-wrapper" style="--step-color: #4F46E5;">
+            <div id="stepWrapper3" class="tl-step-wrapper" style="--step-color: #9F438D;">
               <div id="dot3" class="tl-dot"></div>
               <div class="tl-card">
-                <h3 class="tl-title">Resultado</h3>
-                <p class="tl-desc">Feedback técnico sobre o ingresso.</p>
+                <h3 class="tl-title">Aprovação</h3>
+                <p class="tl-desc">Nossa comissão técnica analisa seu desempenho em quadra e seu perfil para determinar sua aprovação e encontrar o lugar ideal para evoluir.</p>
               </div>
             </div>
 
-            <div id="stepWrapper4" class="tl-step-wrapper" style="--step-color: #EE4036;" onclick="iniciarCadastro()">
+            <div id="stepWrapper4" class="tl-step-wrapper" style="--step-color: #C64262;" onclick="iniciarCadastro()">
               <div id="dot4" class="tl-dot"></div>
-              <div class="tl-card">
-                <h3 class="tl-title">Cadastro</h3>
-                <p class="tl-desc">Preenchimento de dados e anamnese.</p>
+              <div class="tl-card relative">
+                <h3 class="tl-title">Cadastro do Atleta</h3>
+                <p class="tl-desc mb-3">Hora de oficializar! Após a aprovação, preencha os dados e anamnese médica para gerar seu registro oficial na equipe.</p>
+                <div class="tl-cta-btn items-center justify-center gap-2 px-4 py-2.5 mt-1 bg-gradient-to-r from-[#C64262] to-[#EE4036] text-white text-[13px] font-bold rounded-xl shadow-md w-full transition-all group-hover:shadow-lg group-hover:brightness-110">
+                  Clique para iniciar
+                  <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </div>
               </div>
             </div>
 
-            <div id="stepWrapper5" class="tl-step-wrapper" style="--step-color: #c026d3;">
+            <div id="stepWrapper5" class="tl-step-wrapper" style="--step-color: #EE4036;">
               <div id="dot5" class="tl-dot"></div>
               <div class="tl-card">
-                <h3 class="tl-title">Matrícula</h3>
-                <p class="tl-desc">Assinatura de termo e plano.</p>
+                <h3 class="tl-title">Integração à equipe</h3>
+                <p class="tl-desc">Bem-vindo ao time! Com o cadastro feito, agora você faz parte oficialmente da constelação Apollo e já pode iniciar sua jornada.</p>
               </div>
             </div>
           </div>
@@ -1378,7 +1379,7 @@
       }));
 
       steps.forEach(s => {
-        s.w.classList.remove('active','completed','blocked','loading','error','pulsing','revealed');
+        s.w.classList.remove('active','completed','blocked','loading','error','pulsing','revealed','group');
         s.d.innerHTML = '';
       });
 
@@ -1397,7 +1398,7 @@
         window.launchConfetti();
       } else if (status === 'approved' || status === 'aprovado' || status === 'in_registration') {
         setCompleted(1); setCompleted(2);
-        steps[3].w.classList.add('active','pulsing'); steps[3].d.innerHTML = SVG_UNLOCK;
+        steps[3].w.classList.add('active','pulsing','group'); steps[3].d.innerHTML = SVG_UNLOCK;
         targetDotId = 'dot4';
       } else if (status === 'rejected' || status === 'reprovado') {
         setCompleted(1);
