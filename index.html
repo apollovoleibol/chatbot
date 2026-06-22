@@ -151,6 +151,9 @@
     .cd-radio-label { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
     .dark .cd-radio-label { background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05); color: #F3F4F6; }
     .cd-radio-label:hover { border-color: rgba(238,64,54,0.3); background: rgba(255,255,255,0.8); }
+    .cd-radio-label:has(input:checked) { border-color: rgba(238,64,54,0.5); background: rgba(238,64,54,0.07); }
+    .dark .cd-radio-label:has(input:checked) { background: rgba(238,64,54,0.15); }
+    select.glass-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.2rem; padding-right: 2.5rem; }
     input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
     .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.8; }
 
@@ -1367,6 +1370,7 @@
     const SVG_CROSS  = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
 
     function abrirTimeline(dados) {
+      window._dadosCadastro = dados;
       document.getElementById('timeline-view').classList.remove('hidden');
       atualizarHeader('Assistente Apollo', 'STATUS DO ATLETA', '#EE4036');
 
@@ -1442,11 +1446,8 @@
       document.getElementById('timeline-view').classList.add('hidden');
       document.getElementById('cadastro-view').classList.remove('hidden');
       document.getElementById('cadastro-view').classList.add('flex');
-      atualizarHeader('Assistente Apollo', 'CADASTRO GAV', null);
-      if (pages.length > 0 && historyStack.length === 0) {
-        historyStack.push(pages[0].id);
-        renderPage(pages[0].id);
-      }
+      atualizarHeader('Assistente Apollo', 'CADASTRO', null);
+      fwInit();
     }
 
     document.getElementById('btnCancelForm').onclick = () => {
@@ -1483,149 +1484,428 @@
     }
 
     // =========================================================
-    // FORM JSON E WIZARD
+    // FORM WIZARD
     // =========================================================
-    const formJSON = {
-      "items": [
-        { "id": 1833521539, "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
-        { "id": 1068657778, "title": "QUAL É O SEU PERFIL?", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Sou atleta da categoria adulta" }, { "value": "Sou pai/mãe de um atleta menor de idade" }] },
-        { "id": 518240166, "title": "DADOS DO ATLETA", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
-        { "id": 916066996, "title": "Nome do atleta", "type": "TEXT", "isRequired": true },
-        { "id": 1724645339, "title": "CPF do(a) atleta", "type": "TEXT", "isRequired": true },
-        { "id": 1250955793, "title": "RG do(a) atleta", "type": "TEXT", "isRequired": true },
-        { "id": 2137007236, "title": "Data de nascimento", "type": "DATE", "isRequired": true },
-        { "id": 449999411, "title": "E-mail", "type": "TEXT", "isRequired": true },
-        { "id": 620467229, "title": "Endereço completo", "type": "PARAGRAPH_TEXT", "isRequired": true },
-        { "id": 539660292, "title": "WhatsApp", "type": "TEXT", "isRequired": true },
-        { "id": 5282445, "title": "Contato de emergência", "type": "TEXT", "isRequired": true },
-        { "id": 1985418252, "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
-        { "id": 1643391030, "title": "TURMA/EQUIPE", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [
-          { "value": "ESCOLINHA A", "goToSectionId": 586732454 },
-          { "value": "Equipe Feminino", "goToSectionId": 1878004539 },
-          { "value": "Equipe Armstrong", "goToSectionId": 543596760 }
-        ]},
-        { "id": 586732454, "title": "PLANO DE AULAS", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
-        { "id": 2076825410, "title": "MENSALIDADE", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "1x por semana" }, { "value": "2x por semana" }] },
-        { "id": 1580742689, "title": "Banco", "type": "TEXT", "isRequired": true },
-        { "id": 860750697, "title": "DIAS", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Terças e Quintas" }, { "value": "Sábados" }] },
-        { "id": 1878004539, "title": "COMPETITIVO", "type": "PAGE_BREAK", "navigationType": "GO_TO_PAGE", "goToSectionId": 1485795870 },
-        { "id": 645956080, "title": "MENSALIDADE", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Mensalidade A" }, { "value": "Mensalidade B" }] },
-        { "id": 1485795870, "title": "RESPONSÁVEIS", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
-        { "id": 1364223727, "title": "Nome do responsável", "type": "TEXT", "isRequired": true },
-        { "id": 1847314181, "title": "ANAMNESE", "type": "PAGE_BREAK", "navigationType": "CONTINUE" },
-        { "id": 1665643726, "title": "Estatura", "type": "TEXT", "isRequired": true },
-        { "id": 1953537087, "title": "Peso", "type": "TEXT", "isRequired": true },
-        { "id": 77780229, "title": "FINALIZAÇÃO", "type": "PAGE_BREAK", "navigationType": "SUBMIT" },
-        { "id": 537616621, "title": "Declaro concordância", "type": "MULTIPLE_CHOICE", "isRequired": true, "choices": [{ "value": "Estou ciente e concordo." }] }
-      ]
-    };
+    const DAY_LABEL = { 0:'Domingos', 1:'Segundas', 2:'Terças', 3:'Quartas', 4:'Quintas', 5:'Sextas', 6:'Sábados' };
 
-    const pages = [];
-    let currentPageObj = null;
-    let globalFormData = {};
-    let historyStack   = [];
-
-    formJSON.items.forEach(item => {
-      if (item.type === 'PAGE_BREAK') {
-        pages.push({ id: item.id, title: item.title || '', navigationType: item.navigationType, goToSectionId: item.goToSectionId, items: [] });
-      } else if (pages.length > 0) {
-        pages[pages.length - 1].items.push(item);
+    function fwMaskCPF(el) {
+      let v = el.value.replace(/\D/g,'').slice(0,11);
+      v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+      el.value = v;
+    }
+    function fwMaskRG(el) {
+      let v = el.value.replace(/[^\dXx]/g,'').slice(0,9);
+      if(v.length>2) v=v.slice(0,2)+'.'+v.slice(2);
+      if(v.length>6) v=v.slice(0,6)+'.'+v.slice(6);
+      if(v.length>10) v=v.slice(0,10)+'-'+v.slice(10);
+      el.value = v;
+    }
+    function fwMaskCEP(el) {
+      let v = el.value.replace(/\D/g,'').slice(0,8);
+      if(v.length>5) v=v.slice(0,5)+'-'+v.slice(5);
+      el.value = v;
+    }
+    function fwMaskDate(el) {
+      let v = el.value.replace(/\D/g,'').slice(0,8);
+      if(v.length>=5) v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+      else if(v.length>=3) v=v.slice(0,2)+'/'+v.slice(2);
+      el.value = v;
+    }
+    function fwValidateCPF(cpf) {
+      const d = cpf.replace(/\D/g,'');
+      if(d.length!==11||/^(\d)\1+$/.test(d)) return false;
+      let s=0, r;
+      for(let i=1;i<=9;i++) s+=parseInt(d[i-1])*(11-i);
+      r=(s*10)%11; if(r===10||r===11) r=0; if(r!==parseInt(d[9])) return false;
+      s=0; for(let i=1;i<=10;i++) s+=parseInt(d[i-1])*(12-i);
+      r=(s*10)%11; if(r===10||r===11) r=0;
+      return r===parseInt(d[10]);
+    }
+    function fwToggleCond(id, show) {
+      const el = document.getElementById('cond_'+id);
+      if(el) el.classList.toggle('hidden', !show);
+    }
+    function fwHandleCheckbox(input, fieldId, exclusive) {
+      if(!exclusive) return;
+      const allBoxes = document.querySelectorAll('[name="f_'+fieldId+'"]');
+      if(input.value===exclusive && input.checked) {
+        allBoxes.forEach(function(b){ if(b.value!==exclusive) b.checked=false; });
+      } else if(input.checked) {
+        allBoxes.forEach(function(b){ if(b.value===exclusive) b.checked=false; });
       }
-    });
-
-    function atualizarProgressoForm(pageId) {
-      const idx     = pages.findIndex(p => p.id === pageId);
-      const pct     = pages.length > 1 ? Math.round((idx / (pages.length - 1)) * 100) : 100;
-      document.getElementById('formProgressFill').style.width = pct + '%';
-      document.getElementById('formProgressText').textContent = 'Etapa ' + (idx + 1) + ' de ' + pages.length;
     }
 
-    function renderPage(pageId) {
-      const page   = pages.find(p => p.id === pageId);
+    const BANKS_TOP = ['Nubank','Banco C6 – C6 Bank','Banco Inter','Next','PicPay','Neon Pagamentos','Banco do Brasil S.A.','Caixa Econômica Federal','Banco Itaú','Banco Santander','Banco Bradesco S.A.'];
+    const BANKS_ALL = ['Avista S.A. Crédito, Financiamento e Investimento','Banco A.J.Renner S.A.','Banco ABC Brasil S.A.','Banco ABN AMRO S.A','Banco Agibank S.A.','Banco Alfa S.A.','Banco Alvorada S.A.','Banco Andbank (Brasil) S.A.','Banco Arbi S.A.','Banco B3 S.A.','Banco BMG S.A.','Banco BNP Paribas Brasil S.A.','Banco BOCOM BBM S.A.','Banco Bradescard S.A.','Banco Bradesco Cartões S.A.','Banco Bradesco Financiamentos S.A.','Banco BS2 S.A.','Banco BTG Pactual S.A.','Banco Capital S.A.','Banco Cargill S.A.','Banco Carrefour','Banco Cédula S.A.','Banco Cetelem S.A.','Banco Cifra S.A.','Banco Citibank S.A.','Banco Clássico S.A.','Banco Cooperativo do Brasil S.A. – BANCOOB','Banco Cooperativo Sicredi S.A.','Banco Credit Agricole Brasil S.A.','Banco Credit Suisse (Brasil) S.A.','Banco Crefisa S.A.','Banco da Amazônia S.A.','Banco da China Brasil S.A.','Banco Daycoval S.A.','Banco de Desenvolvimento do Espírito Santo S.A.','Banco de La Nacion Argentina','Banco Digio S.A','Banco do Estado de Sergipe S.A.','Banco do Estado do Pará S.A.','Banco do Estado do Rio Grande do Sul S.A.','Banco do Nordeste do Brasil S.A.','Banco Fator S.A.','Banco Fibra S.A.','Banco Ficsa S.A.','Banco Finaxis S.A.','Banco Guanabara S.A.','Banco Inbursa S.A.','Banco Industrial do Brasil S.A.','Banco Indusval S.A.','Banco Investcred Unibanco S.A.','Banco Itaú BBA S.A.','Banco Itaú Consignado S.A.','Banco J.P. Morgan S.A.','Banco John Deere S.A.','Banco KDB S.A.','Banco KEB HANA do Brasil S.A.','Banco Luso Brasileiro S.A.','Banco Máxima S.A.','Banco Mercantil do Brasil S.A.','Banco Mizuho do Brasil S.A.','Banco Modal S.A.','Banco Morgan Stanley S.A.','Banco MUFG Brasil S.A.','Banco Nacional de Desenvolvimento – BNDES','Banco Original','Banco Safra','Banco Willbank','Código Banco Beg S.A.','Mercado Pago','PagBank','Stone Pagamentos','Superdigital'];
+
+    function fwCombinations(arr, k) {
+      const res = [];
+      function c(start, combo) {
+        if(combo.length===k){ res.push(combo.slice()); return; }
+        for(let i=start;i<arr.length;i++) c(i+1, combo.concat(arr[i]));
+      }
+      c(0, []); return res;
+    }
+    function fwUpdateDays(planValue, schedule) {
+      const container = document.getElementById('dias_container');
+      if(!container) return;
+      container.innerHTML = '';
+      if(!schedule||!schedule.length) return;
+      const m = (planValue||'').match(/^(\d+)x/i);
+      const n = m ? Math.min(parseInt(m[1]), schedule.length) : 1;
+      const days = schedule.map(function(t){ return t.day; });
+      const combos = fwCombinations(days, n);
+      const saved = fwData['dias_treino']||'';
+      combos.forEach(function(combo){
+        const label = combo.map(function(d){ return DAY_LABEL[d]; }).join(' e ');
+        const chk = saved===label ? 'checked' : '';
+        container.insertAdjacentHTML('beforeend',
+          '<label class="cd-radio-label"><input type="radio" name="f_dias_treino" value="'+label+'" '+chk+' class="accent-apollo-red flex-shrink-0 mt-0.5"><span>'+label+'</span></label>');
+      });
+      if(combos.length===1){ const r=container.querySelector('[name="f_dias_treino"]'); if(r) r.checked=true; }
+    }
+
+    let fwPageIndex = 0;
+    let fwData = {};
+    let fwPages = [];
+
+    function fwBuildPages() {
+      const ag = window._dadosCadastro && window._dadosCadastro.agendamento;
+      const isMinor = !!(ag && ag.minor_name && ag.minor_name.trim());
+      const athleteName = isMinor ? (ag.minor_name||'') : (ag&&ag.name||'');
+      const whatsapp = (ag&&ag.whatsapp_phone)||'';
+      const emergencyPreFill = isMinor ? (formatarNome((ag&&ag.name)||'') + ' - ' + whatsapp) : '';
+      const teamName = (ag&&ag.target_team)||'';
+      const det = (ag&&ag.detalhes)||{};
+      const plans = det.available_payment_plans||[];
+      const schedule = det.training_schedule||[];
+      const teamDesc = teamName + (det.endereco ? '\n'+det.endereco : '');
+
+      return [
+        {
+          id:'dados-atleta', title:'DADOS DO ATLETA',
+          description: isMinor ? 'Preencha os dados do atleta menor de idade.' : 'Confirme e complete seus dados de atleta.',
+          items:[
+            {id:'nome_atleta', title:'Nome do atleta', type:'TEXT', required:true, prefill:athleteName},
+            {id:'cpf', title:'CPF do(a) atleta', type:'CPF', required:true},
+            {id:'rg', title:'RG do(a) atleta', type:'RG', required:true},
+            {id:'nascimento', title:'Data de nascimento', type:'DATE_BR', required:true},
+            {id:'email', title:'E-mail', type:'EMAIL', required:true},
+            {id:'rua', title:'Rua / Avenida', type:'TEXT', required:true, placeholder:'Nome da rua ou avenida'},
+            {id:'numero', title:'Número', type:'TEXT', required:true, placeholder:'Ex: 123'},
+            {id:'cep', title:'CEP', type:'CEP', required:true},
+            {id:'complemento', title:'Complemento', type:'TEXT', required:false, placeholder:'Apto, Bloco, Casa... (opcional)'},
+            {id:'whatsapp', title:'WhatsApp do(a) atleta', type:'PHONE', required:true, prefill:whatsapp},
+            {id:'emergencia', title:'Contato de emergência', type:'TEXT', required:true, prefill:emergencyPreFill, placeholder:'Nome - (XX) XXXXX-XXXX'},
+          ]
+        },
+        {
+          id:'turma-equipe', title:'TURMA / EQUIPE',
+          description:'Esta é a equipe para a qual seu cadastro está sendo realizado. Essa informação foi definida com base no seu agendamento e na avaliação do técnico responsável.',
+          items:[{id:'equipe_info', title:teamDesc, type:'INFO_ONLY', required:false}]
+        },
+        {
+          id:'plano', title:'PLANO – MENSALIDADE',
+          description:'Selecione abaixo a quantidade de treinos que deseja incluir no seu plano. Quanto maior o número de treinos, maior a mensalidade.',
+          items:[
+            {id:'plano_sel', title:'Plano de mensalidade', type:'MULTIPLE_CHOICE', required:true,
+              choices: plans.length ? plans.map(function(p){return {value:p};}) : [{value:'Plano único (consulte seu técnico)'}]},
+            {id:'dias_treino', title:'Dias de treino', type:'DIAS_DYNAMIC', required:schedule.length>0, schedule:schedule},
+            {id:'banco', title:'Banco para pagamento da mensalidade', type:'BANK_SELECT', required:true,
+              description:'Selecione o banco a partir do qual você realizará o pagamento das mensalidades.'},
+          ]
+        },
+        {
+          id:'anamnese-1', title:'ANAMNESE',
+          description:'Nesta seção você deve preencher todos os detalhes do quadro de saúde do(a) atleta.',
+          items:[
+            {id:'estatura', title:'Estatura', type:'HEIGHT_CM', required:true, placeholder:'Ex: 175', help:'Informe apenas o número em centímetros. Exemplo: 175 para 1,75 m.'},
+            {id:'peso', title:'Peso', type:'WEIGHT_KG', required:true, placeholder:'Ex: 70', help:'Informe apenas o número em quilogramas. Exemplo: 70 para 70 kg.'},
+          ]
+        },
+        {
+          id:'anamnese-2', title:'ANAMNESE – PARTE 2',
+          items:[
+            {id:'q1', title:'1. Possui alguma restrição à prática de atividade física?', type:'YES_NO_COND', required:true, condLabel:'Descreva a restrição'},
+            {id:'q2', title:'2. Atualmente sente dor em alguma região do corpo?', type:'YES_NO_COND', required:true, condLabel:'Informe o local'},
+            {id:'q3', title:'3. Já perdeu a consciência ou teve desequilíbrio por tonteira ou desmaio?', type:'YES_NO', required:true},
+            {id:'q4', title:'4. Possui algum tipo de desvio postural?', type:'CHECKBOX_MULTI', required:true, exclusive:'Não', choices:['Não','Lordose Cervical','Escoliose','Cifose Dorsal','Lordose Lombar']},
+            {id:'q5', title:'5. Possui alguma lesão óssea, articular ou muscular?', type:'YES_NO_COND', required:true, condLabel:'Descreva a lesão'},
+            {id:'q6', title:'6. Foi submetido(a) a algum tipo de cirurgia?', type:'YES_NO_COND', required:true, condLabel:'Especifique qual e quando'},
+            {id:'q7', title:'7. Possui alguma deficiência ou limitação física?', type:'YES_NO_COND', required:true, condLabel:'Descreva'},
+            {id:'q8', title:'8. Pratica algum tipo de atividade física além dos nossos treinamentos?', type:'YES_NO_COND', required:true, condLabel:'Qual/quais atividades?'},
+            {id:'q9', title:'9. Como você considera a sua alimentação?', type:'MULTIPLE_CHOICE', required:true, choices:[{value:'Adequada'},{value:'Regular'},{value:'Inadequada'}]},
+            {id:'q9_1', title:'9.1 Em média, quantas refeições você faz ao dia?', type:'TEXT', required:true, placeholder:'Ex: 4'},
+          ]
+        },
+        {
+          id:'anamnese-3', title:'ANAMNESE – PARTE 3',
+          items:[
+            {id:'q10', title:'10. Tem histórico de algum destes quadros de saúde?', type:'CHECKBOX_MULTI', required:true, exclusive:'Não tenho histórico familiar', choices:['Sedentarismo','Doenças cardíacas','Não tenho histórico familiar']},
+            {id:'q11', title:'11. Possui alguma doença de tratamento contínuo?', type:'YES_NO_COND', required:true, condLabel:'Qual/quais?'},
+            {id:'q12', title:'12. Já foi diagnosticado(a) ou tratado(a) com problemas de:', type:'CHECKBOX_MULTI', required:true, exclusive:'Nunca tive nenhum desses problemas', choices:['Doenças cardiovasculares','Hipertensão (pressão alta)','Colesterol ou Triglicerídeos alto','Alteração na tireóide','Alteração circulatória ou vascular','Dores no peito','Diabetes','Epilepsia','Artrite/artrose','Hérnia de disco','Enfarto','Obesidade','Depressão','Ciatalgia','Fibromialgia','AVC','Câncer','Asma','Lombalgia','Varizes','Nunca tive nenhum desses problemas']},
+            {id:'q13', title:'13. Tem histórico familiar de doenças coronarianas e/ou hipertensão?', type:'CHECKBOX_MULTI', required:true, exclusive:'Não tenho histórico familiar', choices:['Pai','Mãe','Avô/avó','Irmão/irmã','Não tenho histórico familiar']},
+            {id:'q14', title:'14. Faz uso de medicamentos contínuos?', type:'YES_NO_COND', required:true, condLabel:'Qual/quais medicamentos?'},
+            {id:'q15', title:'15. Há alguma informação importante que não foi mencionada até aqui?', type:'PARAGRAPH_TEXT', required:false, placeholder:'Descreva se houver...'},
+          ]
+        },
+        {
+          id:'declaracao', title:'DECLARAÇÃO', isLast:true,
+          items:[{id:'declaracao_aceite', type:'DECLARATION', required:true, title:'Estou ciente e concordo.'}]
+        },
+      ];
+    }
+
+    function fwInit() {
+      fwPageIndex = 0;
+      fwData = {};
+      fwPages = fwBuildPages();
+      fwRenderPage();
+    }
+
+    function fwRenderPage() {
+      const page = fwPages[fwPageIndex];
+      const total = fwPages.length;
+      const pct = Math.round((fwPageIndex / (total-1)) * 100);
+      document.getElementById('formProgressFill').style.width = pct+'%';
+      document.getElementById('formProgressText').textContent = 'Etapa '+(fwPageIndex+1)+' de '+total;
+
+      const titleEl = document.getElementById('sectionTitle');
+      const descEl  = document.getElementById('sectionDescription');
+      titleEl.textContent = page.title;
+      if(page.description){ descEl.textContent = page.description; descEl.classList.remove('hidden'); }
+      else { descEl.textContent = ''; descEl.classList.add('hidden'); }
+
+      document.getElementById('btnBack').style.display = fwPageIndex > 0 ? 'flex' : 'none';
+      document.getElementById('btnNextText').textContent = page.isLast ? 'Finalizar' : 'Continuar';
+      document.getElementById('formScrollArea').scrollTop = 0;
+
       const formEl = document.getElementById('dynamicForm');
       formEl.innerHTML = '';
-      document.getElementById('sectionTitle').textContent = page.title || '';
+      page.items.forEach(function(item){ fwRenderField(item, formEl); });
 
-      atualizarProgressoForm(pageId);
-
-      page.items.forEach(item => {
-        let html = `<div class="w-full animate-slide-up" data-id="${item.id}">
-          <label class="block text-[11px] font-bold text-apollo-navy/50 dark:text-gray-400 mb-2 uppercase leading-relaxed tracking-wide">${item.title}</label>`;
-
-        if (item.type === 'MULTIPLE_CHOICE') {
-          item.choices.forEach(c => {
-            html += `<label class="cd-radio-label"><input type="radio" name="f_${item.id}" value="${c.value}" ${c.goToSectionId ? `data-goto="${c.goToSectionId}"`:''} class="accent-apollo-red flex-shrink-0 mt-0.5"><span>${c.value}</span></label>`;
-          });
-        } else if (item.type === 'PARAGRAPH_TEXT') {
-          html += `<textarea name="f_${item.id}" rows="3" class="glass-input w-full px-5 py-3.5 rounded-[18px] resize-none"></textarea>`;
-        } else if (item.type === 'DATE') {
-          html += `<input type="date" name="f_${item.id}" class="glass-input w-full h-[54px] px-5 rounded-[18px]">`;
-        } else {
-          html += `<input type="text" name="f_${item.id}" class="glass-input w-full h-[54px] px-5 rounded-[18px]">`;
-        }
-        formEl.insertAdjacentHTML('beforeend', html + `<p class="error-msg hidden text-[10px] text-apollo-red mt-1 ml-1">Campo obrigatório.</p></div>`);
-      });
-
-      document.getElementById('btnBack').style.display = historyStack.length > 1 ? 'flex' : 'none';
-      document.getElementById('btnNextText').textContent = (page.navigationType === 'SUBMIT') ? 'Finalizar' : 'Continuar';
-      document.getElementById('formScrollArea').scrollTop = 0;
+      if(page.id === 'plano') {
+        const d = (window._dadosCadastro&&window._dadosCadastro.agendamento&&window._dadosCadastro.agendamento.detalhes)||{};
+        const sch = d.training_schedule||[];
+        const planInputs = document.querySelectorAll('[name="f_plano_sel"]');
+        planInputs.forEach(function(inp){ inp.addEventListener('change', function(){ fwUpdateDays(inp.value, sch); }); });
+        const checked = document.querySelector('[name="f_plano_sel"]:checked');
+        if(checked) fwUpdateDays(checked.value, sch);
+        else if(planInputs.length===1){ planInputs[0].checked=true; fwUpdateDays(planInputs[0].value, sch); }
+      }
     }
 
-    document.getElementById('btnNext').addEventListener('click', () => {
-      const page    = pages.find(p => p.id === historyStack[historyStack.length - 1]);
-      let nextId    = null;
-      let isValid   = true;
+    function fwRenderField(item, formEl) {
+      const prefill = fwData[item.id] !== undefined ? fwData[item.id] : (item.prefill||'');
+      function esc(v){ return (v||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+      let html = '<div class="w-full animate-slide-up" data-field="'+item.id+'">';
 
-      page.items.forEach(item => {
-        const el  = document.querySelector(`[name="f_${item.id}"]`);
-        const err = el ? el.closest('[data-id]').querySelector('.error-msg') : null;
-        let val = '';
-        if (item.type === 'MULTIPLE_CHOICE') {
-          const sel = document.querySelector(`[name="f_${item.id}"]:checked`);
-          if (sel) { val = sel.value; if (sel.dataset.goto) nextId = parseInt(sel.dataset.goto); }
-        } else {
-          val = el ? el.value.trim() : '';
+      if(item.type!=='INFO_ONLY' && item.type!=='DECLARATION') {
+        html += '<label class="block text-[11px] font-bold text-apollo-navy/50 dark:text-gray-400 mb-2 uppercase tracking-wide leading-relaxed">'+item.title+'</label>';
+        if(item.help) html += '<p class="text-[11px] text-gray-400 dark:text-gray-500 mb-2 leading-relaxed">'+item.help+'</p>';
+      }
+
+      switch(item.type) {
+        case 'INFO_ONLY':
+          html += '<div class="px-5 py-4 rounded-[18px] bg-apollo-navy/5 dark:bg-white/5 border border-gray-200 dark:border-white/10"><p class="text-[15px] font-bold text-apollo-navy dark:text-white whitespace-pre-wrap">'+esc(item.title)+'</p></div>';
+          break;
+        case 'TEXT':
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="'+esc(item.placeholder||'')+'" class="glass-input w-full h-[54px] px-5 rounded-[18px]">';
+          break;
+        case 'EMAIL':
+          html += '<input type="email" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="seu@email.com" inputmode="email" class="glass-input w-full h-[54px] px-5 rounded-[18px]">';
+          break;
+        case 'CPF':
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="000.000.000-00" maxlength="14" inputmode="numeric" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskCPF(this)">';
+          break;
+        case 'RG':
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="00.000.000-0" maxlength="12" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskRG(this)">';
+          break;
+        case 'DATE_BR':
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskDate(this)">';
+          break;
+        case 'CEP':
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="00000-000" maxlength="9" inputmode="numeric" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskCEP(this)">';
+          break;
+        case 'PHONE':
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="(XX) XXXXX-XXXX" maxlength="15" inputmode="tel" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="maskWhatsapp(this)">';
+          break;
+        case 'HEIGHT_CM':
+          html += '<div class="relative"><input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="'+esc(item.placeholder||'')+'" maxlength="3" inputmode="numeric" class="glass-input w-full h-[54px] px-5 pr-16 rounded-[18px]" oninput="this.value=this.value.replace(/\\D/g,\'\').slice(0,3)"><span class="absolute right-5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-gray-400 pointer-events-none">cm</span></div>';
+          break;
+        case 'WEIGHT_KG':
+          html += '<div class="relative"><input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="'+esc(item.placeholder||'')+'" maxlength="6" inputmode="decimal" class="glass-input w-full h-[54px] px-5 pr-16 rounded-[18px]" oninput="this.value=this.value.replace(/[^\\d,.]/g,\'\').slice(0,6)"><span class="absolute right-5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-gray-400 pointer-events-none">kg</span></div>';
+          break;
+        case 'PARAGRAPH_TEXT':
+          html += '<textarea name="f_'+item.id+'" rows="3" placeholder="'+esc(item.placeholder||'')+'" class="glass-input w-full px-5 py-3.5 rounded-[18px] resize-none">'+esc(prefill)+'</textarea>';
+          break;
+        case 'MULTIPLE_CHOICE':
+          item.choices.forEach(function(c){
+            const chk = fwData[item.id]===c.value ? 'checked' : '';
+            html += '<label class="cd-radio-label"><input type="radio" name="f_'+item.id+'" value="'+esc(c.value)+'" '+chk+' class="accent-apollo-red flex-shrink-0 mt-0.5"><span>'+c.value+'</span></label>';
+          });
+          break;
+        case 'YES_NO':
+          ['Sim','Não'].forEach(function(opt){
+            const chk = fwData[item.id]===opt ? 'checked' : '';
+            html += '<label class="cd-radio-label"><input type="radio" name="f_'+item.id+'" value="'+opt+'" '+chk+' class="accent-apollo-red flex-shrink-0 mt-0.5"><span>'+opt+'</span></label>';
+          });
+          break;
+        case 'YES_NO_COND': {
+          const ynVal = fwData[item.id+'_yn']||'';
+          const condVal = fwData[item.id+'_text']||'';
+          ['Sim','Não'].forEach(function(opt){
+            const chk = ynVal===opt ? 'checked' : '';
+            html += '<label class="cd-radio-label"><input type="radio" name="f_'+item.id+'_yn" value="'+opt+'" '+chk+' class="accent-apollo-red flex-shrink-0 mt-0.5" onchange="fwToggleCond(\''+item.id+'\',this.value===\'Sim\')"><span>'+opt+'</span></label>';
+          });
+          html += '<div id="cond_'+item.id+'" class="'+(ynVal==='Sim'?'':'hidden')+' mt-3"><input type="text" name="f_'+item.id+'_text" value="'+esc(condVal)+'" placeholder="'+esc(item.condLabel||'Especifique')+'" class="glass-input w-full h-[54px] px-5 rounded-[18px]"></div>';
+          break;
         }
-        if (item.isRequired && !val) {
-          isValid = false;
-          if (el)  el.classList.add('field-error');
-          if (err) err.classList.remove('hidden');
-        } else {
-          if (el)  el.classList.remove('field-error');
-          if (err) err.classList.add('hidden');
-          if (val) globalFormData[item.id] = val;
+        case 'CHECKBOX_MULTI': {
+          const savedArr = fwData[item.id] ? fwData[item.id].split('|') : [];
+          item.choices.forEach(function(ch){
+            const chk = savedArr.indexOf(ch)>=0 ? 'checked' : '';
+            const onch = 'fwHandleCheckbox(this,\''+item.id+'\',\''+((item.exclusive||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+'\')';
+            html += '<label class="cd-radio-label"><input type="checkbox" name="f_'+item.id+'" value="'+esc(ch)+'" '+chk+' class="accent-apollo-red flex-shrink-0 mt-0.5" onchange="'+onch+'"><span>'+ch+'</span></label>';
+          });
+          break;
         }
+        case 'DIAS_DYNAMIC':
+          html += '<div id="dias_container" class="space-y-0"></div>';
+          break;
+        case 'BANK_SELECT': {
+          if(item.description) html += '<p class="text-[12px] text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">'+item.description+'</p>';
+          const sv = fwData[item.id]||'';
+          html += '<select name="f_'+item.id+'" class="glass-input w-full h-[54px] px-5 rounded-[18px]"><option value="">Selecione o banco...</option>';
+          BANKS_TOP.forEach(function(b){ html += '<option value="'+esc(b)+'"'+(sv===b?' selected':'')+'>'+b+'</option>'; });
+          html += '<option disabled>────────────────────</option>';
+          BANKS_ALL.forEach(function(b){ html += '<option value="'+esc(b)+'"'+(sv===b?' selected':'')+'>'+b+'</option>'; });
+          html += '</select>';
+          break;
+        }
+        case 'DECLARATION': {
+          const declChk = fwData[item.id] ? 'checked' : '';
+          html += '<div class="rounded-[18px] p-5 mb-5 max-h-[280px] overflow-y-auto text-[12px] text-gray-600 dark:text-gray-300 leading-relaxed border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-white/5">'
+            + '<p>Declaro, para os devidos fins, que todas as informações fornecidas nesta ficha de anamnese são verdadeiras e de minha inteira responsabilidade, prestadas de forma livre e espontânea. Reconheço, ainda, que sou responsável pela minha própria integridade física e/ou pela integridade de meus dependentes legais, especialmente no que se refere à aptidão para a prática de atividades físicas, eximindo a organização responsável de qualquer responsabilidade por eventuais consequências decorrentes da omissão ou falsidade dessas informações.</p>'
+            + '<br><p>Autorizo, de forma gratuita, irrevogável e por prazo indeterminado, a captação, utilização e divulgação da minha imagem e/ou de meus dependentes legais, bem como voz e nome, em fotos, vídeos e gravações de áudio realizados durante atividades, treinos, eventos, jogos e demais ações vinculadas ao projeto. Esta autorização inclui o uso em materiais promocionais, institucionais, publicitários ou educacionais, físicos ou digitais, inclusive em redes sociais, sites e outros meios de comunicação, a critério da organização.</p>'
+            + '<br><p>Declaro estar ciente de que a presente autorização é concedida a título gratuito, não sendo devida qualquer remuneração, compensação ou reembolso pela utilização da imagem, voz ou nome, e que não há limitação territorial para o uso do material, podendo este ser utilizado no Brasil e/ou no exterior.</p>'
+            + '</div>'
+            + '<label class="cd-radio-label"><input type="checkbox" name="f_'+item.id+'" value="concordo" '+declChk+' class="accent-apollo-red flex-shrink-0 mt-0.5"><span class="font-semibold text-apollo-navy dark:text-white">'+item.title+'</span></label>';
+          break;
+        }
+      }
+
+      html += '<p class="error-msg hidden text-[10px] text-apollo-red mt-1 ml-1" id="err_'+item.id+'"></p></div>';
+      formEl.insertAdjacentHTML('beforeend', html);
+    }
+
+    function fwCollectAndValidate() {
+      const page = fwPages[fwPageIndex];
+      let valid = true;
+      page.items.forEach(function(item) {
+        const errEl = document.getElementById('err_'+item.id);
+        function showErr(msg){ if(errEl){ errEl.textContent=msg||'Campo obrigatório.'; errEl.classList.remove('hidden'); } valid=false; }
+        function hideErr(){ if(errEl) errEl.classList.add('hidden'); }
+
+        if(item.type==='INFO_ONLY') return;
+
+        if(item.type==='DECLARATION') {
+          const el = document.querySelector('[name="f_'+item.id+'"]');
+          if(!el||!el.checked) showErr('Você deve aceitar para finalizar.');
+          else { fwData[item.id]='concordo'; hideErr(); }
+          return;
+        }
+        if(item.type==='MULTIPLE_CHOICE'||item.type==='YES_NO') {
+          const sel = document.querySelector('[name="f_'+item.id+'"]:checked');
+          if(item.required&&!sel) showErr();
+          else if(sel){ fwData[item.id]=sel.value; hideErr(); }
+          return;
+        }
+        if(item.type==='YES_NO_COND') {
+          const ynSel = document.querySelector('[name="f_'+item.id+'_yn"]:checked');
+          if(item.required&&!ynSel){ showErr(); return; }
+          if(ynSel) {
+            fwData[item.id+'_yn']=ynSel.value;
+            if(ynSel.value==='Sim') {
+              const txt = document.querySelector('[name="f_'+item.id+'_text"]');
+              const tv = txt ? txt.value.trim() : '';
+              if(!tv){ showErr('Por favor, descreva.'); return; }
+              fwData[item.id+'_text']=tv;
+            }
+            fwData[item.id]=ynSel.value+(ynSel.value==='Sim' ? ': '+(fwData[item.id+'_text']||'') : '');
+          }
+          hideErr(); return;
+        }
+        if(item.type==='CHECKBOX_MULTI') {
+          const boxes = document.querySelectorAll('[name="f_'+item.id+'"]:checked');
+          if(item.required&&!boxes.length) showErr();
+          else if(boxes.length){ fwData[item.id]=Array.from(boxes).map(function(b){return b.value;}).join('|'); hideErr(); }
+          return;
+        }
+        if(item.type==='DIAS_DYNAMIC') {
+          const sel = document.querySelector('[name="f_dias_treino"]:checked');
+          const d2 = (window._dadosCadastro&&window._dadosCadastro.agendamento&&window._dadosCadastro.agendamento.detalhes)||{};
+          if(item.required&&(d2.training_schedule||[]).length>0&&!sel) showErr();
+          else if(sel){ fwData['dias_treino']=sel.value; hideErr(); }
+          return;
+        }
+        if(item.type==='BANK_SELECT') {
+          const el = document.querySelector('[name="f_'+item.id+'"]');
+          const v = el ? el.value : '';
+          if(item.required&&!v) showErr('Selecione um banco.');
+          else if(v){ fwData[item.id]=v; hideErr(); }
+          return;
+        }
+        if(item.type==='CPF') {
+          const el = document.querySelector('[name="f_'+item.id+'"]');
+          const v = el ? el.value.trim() : '';
+          if(!v){ if(item.required) showErr(); }
+          else if(!fwValidateCPF(v)) showErr('CPF inválido.');
+          else { fwData[item.id]=v; hideErr(); }
+          return;
+        }
+        if(item.type==='EMAIL') {
+          const el = document.querySelector('[name="f_'+item.id+'"]');
+          const v = el ? el.value.trim() : '';
+          if(!v){ if(item.required) showErr(); }
+          else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) showErr('E-mail inválido.');
+          else { fwData[item.id]=v; hideErr(); }
+          return;
+        }
+        if(item.type==='DATE_BR') {
+          const el = document.querySelector('[name="f_'+item.id+'"]');
+          const v = el ? el.value.trim() : '';
+          if(!v){ if(item.required) showErr(); }
+          else if(!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) showErr('Data inválida. Use DD/MM/AAAA.');
+          else { fwData[item.id]=v; hideErr(); }
+          return;
+        }
+        const el = document.querySelector('[name="f_'+item.id+'"]');
+        const v = el ? el.value.trim() : '';
+        if(!v){ if(item.required) showErr(); }
+        else { fwData[item.id]=v; hideErr(); }
       });
+      return valid;
+    }
 
-      if (!isValid) return;
-
-      if (!nextId) {
-        if (page.goToSectionId) nextId = page.goToSectionId;
-        else nextId = pages[pages.indexOf(page) + 1]?.id;
-      }
-
-      if (nextId) {
-        historyStack.push(nextId);
-        renderPage(nextId);
-      } else {
-        submitData();
-      }
+    document.getElementById('btnNext').addEventListener('click', function() {
+      if(!fwCollectAndValidate()) return;
+      if(fwPageIndex < fwPages.length-1){ fwPageIndex++; fwRenderPage(); }
+      else fwSubmit();
     });
 
-    document.getElementById('btnBack').onclick = () => {
-      historyStack.pop();
-      renderPage(historyStack[historyStack.length - 1]);
+    document.getElementById('btnBack').onclick = function() {
+      if(fwPageIndex > 0){ fwPageIndex--; fwRenderPage(); }
     };
 
-    function submitData() {
-      const btn     = document.getElementById('btnNext');
+    function fwSubmit() {
+      const btn = document.getElementById('btnNext');
       const btnText = document.getElementById('btnNextText');
-      btn.disabled  = true;
+      btn.disabled = true;
       btnText.innerHTML = '<span class="btn-spinner"></span> Enviando...';
-
-      callBackend('processarCadastro', { formData: globalFormData })
+      callBackend('processarCadastro', { formData: fwData })
         .then(finalizarCadastroVisual)
-        .catch(err => {
+        .catch(function(err){
           console.error('[ERRO Cadastro]', err);
           btn.disabled = false;
           btnText.textContent = 'Tentar novamente';
