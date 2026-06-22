@@ -59,7 +59,7 @@
     .glass-header { background: rgba(255,255,255,0.65); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px); border-bottom: 1px solid rgba(255,255,255,0.3); }
     .dark .glass-header { background: rgba(15,19,50,0.75); border-bottom: 1px solid rgba(255,255,255,0.1); }
 
-    .glass-input { background: rgba(255,255,255,0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4); transition: all 0.3s cubic-bezier(0.16,1,0.3,1); color: #0F1332; }
+    .glass-input { background: rgba(255,255,255,0.75); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.1); transition: all 0.3s cubic-bezier(0.16,1,0.3,1); color: #0F1332; }
     .glass-input:focus { background: rgba(255,255,255,0.8); border-color: #EE4036; box-shadow: 0 0 0 4px rgba(238,64,54,0.15); outline: none; }
     .dark .glass-input { background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.1); color: white; }
     .dark .glass-input:focus { background: rgba(0,0,0,0.4); border-color: #EE4036; }
@@ -174,8 +174,8 @@
     .tl-dot svg { width: 20px; height: 20px; stroke-width: 2.5; transition: color 0.3s; }
     .tl-step-wrapper.completed .tl-dot, .tl-step-wrapper.active .tl-dot { background: var(--step-color); border-color: rgba(0,0,0,0.15); color: white; box-shadow: 0 0 15px var(--step-color); }
     .dark .tl-step-wrapper.completed .tl-dot, .dark .tl-step-wrapper.active .tl-dot { border-color: rgba(255,255,255,0.2); }
-    .tl-step-wrapper.blocked .tl-dot { color: #9ca3af; }
-    .dark .tl-step-wrapper.blocked .tl-dot { color: #4b5563; }
+    .tl-step-wrapper.blocked .tl-dot { background: #94a3b8; border-color: rgba(0,0,0,0.08); color: white; }
+    .dark .tl-step-wrapper.blocked .tl-dot { background: #334155; border-color: rgba(255,255,255,0.08); color: white; }
     .tl-step-wrapper.loading .tl-dot { border-top-color: var(--step-color); color: transparent; animation: spin 1s linear infinite; }
     .tl-step-wrapper.error .tl-dot { background: #ef4444; color: white; box-shadow: 0 0 15px rgba(239,68,68,0.5); }
     .tl-card { background: rgba(255,255,255,0.6); border: none; padding: 20px; border-radius: 0 24px 24px 24px; flex: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: all 0.3s; }
@@ -1505,6 +1505,18 @@
       if(v.length>5) v=v.slice(0,5)+'-'+v.slice(5);
       el.value = v;
     }
+    function fwLookupCEP(cep) {
+      const digits = cep.replace(/\D/g,'');
+      if(digits.length !== 8) return;
+      fetch('https://viacep.com.br/ws/'+digits+'/json/')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if(data.erro) return;
+          const ruaEl = document.querySelector('[name="f_rua"]');
+          if(ruaEl && !ruaEl.value.trim()) ruaEl.value = data.logradouro||'';
+        })
+        .catch(function(){});
+    }
     function fwMaskDate(el) {
       let v = el.value.replace(/\D/g,'').slice(0,8);
       if(v.length>=5) v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
@@ -1650,7 +1662,7 @@
           ]
         },
         {
-          id:'declaracao', title:'DECLARAÇÃO', isLast:true,
+          id:'declaracao', title:'DECLARAÇÃO DE RESPONSABILIDADE E USO DE IMAGEM', isLast:true,
           items:[{id:'declaracao_aceite', type:'DECLARATION', required:true, title:'Estou ciente e concordo.'}]
         },
       ];
@@ -1660,6 +1672,10 @@
       fwPageIndex = 0;
       fwData = {};
       fwPages = fwBuildPages();
+      const btnNext = document.getElementById('btnNext');
+      btnNext.style.display = '';
+      btnNext.disabled = false;
+      document.getElementById('btnCancelForm').style.display = '';
       fwRenderPage();
     }
 
@@ -1725,7 +1741,7 @@
           html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskDate(this)">';
           break;
         case 'CEP':
-          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="00000-000" maxlength="9" inputmode="numeric" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskCEP(this)">';
+          html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="00000-000" maxlength="9" inputmode="numeric" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="fwMaskCEP(this)" onblur="fwLookupCEP(this.value)">';
           break;
         case 'PHONE':
           html += '<input type="text" name="f_'+item.id+'" value="'+esc(prefill)+'" placeholder="(XX) XXXXX-XXXX" maxlength="15" inputmode="tel" class="glass-input w-full h-[54px] px-5 rounded-[18px]" oninput="maskWhatsapp(this)">';
@@ -1785,10 +1801,10 @@
         }
         case 'DECLARATION': {
           const declChk = fwData[item.id] ? 'checked' : '';
-          html += '<div class="rounded-[18px] p-5 mb-5 max-h-[280px] overflow-y-auto text-[12px] text-gray-600 dark:text-gray-300 leading-relaxed border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-white/5">'
+          html += '<div class="text-[13px] text-gray-600 dark:text-gray-300 leading-relaxed space-y-4 mb-8">'
             + '<p>Declaro, para os devidos fins, que todas as informações fornecidas nesta ficha de anamnese são verdadeiras e de minha inteira responsabilidade, prestadas de forma livre e espontânea. Reconheço, ainda, que sou responsável pela minha própria integridade física e/ou pela integridade de meus dependentes legais, especialmente no que se refere à aptidão para a prática de atividades físicas, eximindo a organização responsável de qualquer responsabilidade por eventuais consequências decorrentes da omissão ou falsidade dessas informações.</p>'
-            + '<br><p>Autorizo, de forma gratuita, irrevogável e por prazo indeterminado, a captação, utilização e divulgação da minha imagem e/ou de meus dependentes legais, bem como voz e nome, em fotos, vídeos e gravações de áudio realizados durante atividades, treinos, eventos, jogos e demais ações vinculadas ao projeto. Esta autorização inclui o uso em materiais promocionais, institucionais, publicitários ou educacionais, físicos ou digitais, inclusive em redes sociais, sites e outros meios de comunicação, a critério da organização.</p>'
-            + '<br><p>Declaro estar ciente de que a presente autorização é concedida a título gratuito, não sendo devida qualquer remuneração, compensação ou reembolso pela utilização da imagem, voz ou nome, e que não há limitação territorial para o uso do material, podendo este ser utilizado no Brasil e/ou no exterior.</p>'
+            + '<p>Autorizo, de forma gratuita, irrevogável e por prazo indeterminado, a captação, utilização e divulgação da minha imagem e/ou de meus dependentes legais, bem como voz e nome, em fotos, vídeos e gravações de áudio realizados durante atividades, treinos, eventos, jogos e demais ações vinculadas ao projeto. Esta autorização inclui o uso em materiais promocionais, institucionais, publicitários ou educacionais, físicos ou digitais, inclusive em redes sociais, sites e outros meios de comunicação, a critério da organização.</p>'
+            + '<p>Declaro estar ciente de que a presente autorização é concedida a título gratuito, não sendo devida qualquer remuneração, compensação ou reembolso pela utilização da imagem, voz ou nome, e que não há limitação territorial para o uso do material, podendo este ser utilizado no Brasil e/ou no exterior.</p>'
             + '</div>'
             + '<label class="cd-radio-label"><input type="checkbox" name="f_'+item.id+'" value="concordo" '+declChk+' class="accent-apollo-red flex-shrink-0 mt-0.5"><span class="font-semibold text-apollo-navy dark:text-white">'+item.title+'</span></label>';
           break;
@@ -1903,13 +1919,39 @@
       const btnText = document.getElementById('btnNextText');
       btn.disabled = true;
       btnText.innerHTML = '<span class="btn-spinner"></span> Enviando...';
+      const ag = window._dadosCadastro && window._dadosCadastro.agendamento;
+      if(ag && ag.team_id) fwData.team_id = ag.team_id;
       callBackend('processarCadastro', { formData: fwData })
-        .then(finalizarCadastroVisual)
+        .then(function(){ fwShowSuccess(fwData.nome_atleta || ''); })
         .catch(function(err){
           console.error('[ERRO Cadastro]', err);
           btn.disabled = false;
           btnText.textContent = 'Tentar novamente';
         });
+    }
+
+    function fwShowSuccess(athleteName) {
+      document.getElementById('sectionTitle').textContent = '';
+      document.getElementById('sectionDescription').classList.add('hidden');
+      document.getElementById('formProgressFill').style.width = '100%';
+      document.getElementById('formProgressText').textContent = 'Concluído!';
+      document.getElementById('dynamicForm').innerHTML =
+        '<div class="flex flex-col items-center text-center py-10 gap-6">'
+        + '<div class="w-20 h-20 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#EE4036] flex items-center justify-center shadow-xl">'
+        + '<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>'
+        + '</div>'
+        + '<div class="space-y-3">'
+        + '<h3 class="text-[22px] font-bold text-apollo-navy dark:text-white">Cadastro finalizado!</h3>'
+        + '<p class="text-[14px] text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">Em breve, a equipe de atendimento entrará em contato via WhatsApp para repassar os últimos detalhes para o início dos seus treinos.</p>'
+        + '</div>'
+        + '<p class="text-[14px] font-semibold text-apollo-navy dark:text-white leading-relaxed px-4">Boas-vindas, <span class="text-apollo-red">'
+        + (athleteName ? formatarNome(athleteName) : 'Atleta')
+        + '</span>.<br>Agora, você é oficialmente um atleta Apollo!</p>'
+        + '</div>';
+      document.getElementById('btnNext').style.display = 'none';
+      document.getElementById('btnBack').style.display = 'none';
+      document.getElementById('btnCancelForm').style.display = 'none';
+      setTimeout(finalizarCadastroVisual, 5000);
     }
   </script>
 </body>
