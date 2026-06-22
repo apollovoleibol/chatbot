@@ -174,8 +174,8 @@
     .tl-dot svg { width: 20px; height: 20px; stroke-width: 2.5; transition: color 0.3s; }
     .tl-step-wrapper.completed .tl-dot, .tl-step-wrapper.active .tl-dot { background: var(--step-color); border-color: rgba(0,0,0,0.15); color: white; box-shadow: 0 0 15px var(--step-color); }
     .dark .tl-step-wrapper.completed .tl-dot, .dark .tl-step-wrapper.active .tl-dot { border-color: rgba(255,255,255,0.2); }
-    .tl-step-wrapper.blocked .tl-dot { background: #94a3b8; border-color: rgba(0,0,0,0.08); color: white; }
-    .dark .tl-step-wrapper.blocked .tl-dot { background: #334155; border-color: rgba(255,255,255,0.08); color: white; }
+    .tl-step-wrapper.blocked .tl-dot { background: var(--step-color); border-color: rgba(0,0,0,0.15); color: white; opacity: 0.45; }
+    .dark .tl-step-wrapper.blocked .tl-dot { border-color: rgba(255,255,255,0.2); opacity: 0.45; }
     .tl-step-wrapper.loading .tl-dot { border-top-color: var(--step-color); color: transparent; animation: spin 1s linear infinite; }
     .tl-step-wrapper.error .tl-dot { background: #ef4444; color: white; box-shadow: 0 0 15px rgba(239,68,68,0.5); }
     .tl-card { background: rgba(255,255,255,0.6); border: none; padding: 20px; border-radius: 0 24px 24px 24px; flex: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: all 0.3s; }
@@ -211,6 +211,8 @@
     }
 
     .field-error { border-color: #EE4036 !important; background: rgba(238,64,54,0.05) !important; }
+    .glass-input.field-valid { border-color: #22c55e !important; }
+    .field-group-valid { border-radius: 16px; box-shadow: 0 0 0 2px rgba(34,197,94,0.4); }
 
     #confettiCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 200; }
 
@@ -1447,7 +1449,15 @@
       document.getElementById('cadastro-view').classList.remove('hidden');
       document.getElementById('cadastro-view').classList.add('flex');
       atualizarHeader('Assistente Apollo', 'CADASTRO', null);
-      fwInit();
+      const hasCache = fwPages.length > 0 && Object.keys(fwData).length > 0;
+      if(hasCache) {
+        const btn = document.getElementById('btnNext');
+        btn.style.display = ''; btn.disabled = false;
+        document.getElementById('btnCancelForm').style.display = '';
+        fwRenderPage();
+      } else {
+        fwInit();
+      }
     }
 
     document.getElementById('btnCancelForm').onclick = () => {
@@ -1603,9 +1613,9 @@
             {id:'rg', title:'RG do(a) atleta', type:'RG', required:true},
             {id:'nascimento', title:'Data de nascimento', type:'DATE_BR', required:true},
             {id:'email', title:'E-mail', type:'EMAIL', required:true},
-            {id:'rua', title:'Rua / Avenida', type:'TEXT', required:true, placeholder:'Nome da rua ou avenida'},
-            {id:'numero', title:'Número', type:'TEXT', required:true, placeholder:'Ex: 123'},
             {id:'cep', title:'CEP', type:'CEP', required:true},
+            {id:'rua', title:'Rua / Avenida', type:'TEXT', required:true, placeholder:'Preenchido automaticamente pelo CEP'},
+            {id:'numero', title:'Número', type:'TEXT', required:true, placeholder:'Ex: 123'},
             {id:'complemento', title:'Complemento', type:'TEXT', required:false, placeholder:'Apto, Bloco, Casa... (opcional)'},
             {id:'whatsapp', title:'WhatsApp do(a) atleta', type:'PHONE', required:true, prefill:whatsapp},
             {id:'emergencia', title:'Contato de emergência', type:'TEXT', required:true, prefill:emergencyPreFill, placeholder:'Nome - (XX) XXXXX-XXXX'},
@@ -1901,6 +1911,26 @@
         if(!v){ if(item.required) showErr(); }
         else { fwData[item.id]=v; hideErr(); }
       });
+
+      // Marcar campos válidos/inválidos visualmente
+      const GROUP_TYPES = ['MULTIPLE_CHOICE','YES_NO','YES_NO_COND','CHECKBOX_MULTI','DIAS_DYNAMIC'];
+      page.items.forEach(function(item) {
+        if(item.type==='INFO_ONLY' || item.type==='DECLARATION' || !item.required) return;
+        const errEl = document.getElementById('err_'+item.id);
+        const hasErr = errEl && !errEl.classList.contains('hidden');
+        const isFilled = fwData[item.id] !== undefined && fwData[item.id] !== '';
+        if(GROUP_TYPES.indexOf(item.type) >= 0) {
+          const wrapper = document.querySelector('[data-field="'+item.id+'"]');
+          if(wrapper) wrapper.classList.toggle('field-group-valid', !hasErr && isFilled);
+        } else {
+          const inputEl = document.querySelector('[name="f_'+item.id+'"]');
+          if(inputEl) {
+            inputEl.classList.toggle('field-valid', !hasErr && isFilled);
+            if(hasErr) inputEl.classList.remove('field-valid');
+          }
+        }
+      });
+
       return valid;
     }
 
