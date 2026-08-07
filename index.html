@@ -1011,8 +1011,19 @@
     function processarTelaInicial(dados) {
       document.getElementById('pre-chat-view').classList.add('hidden');
 
-      if (dados.agendamento && dados.agendamento.scheduled_at) {
-        var agScheduled = dados.agendamento.scheduled_at;
+      var ag = dados.agendamento;
+      // Normaliza o status igual ao que abrirTimeline() já faz: o valor
+      // gravado pela aprovação (processo externo) pode vir com variação de
+      // caixa/idioma ('approved', 'aprovado', 'in_registration'), então o
+      // gate de roteamento precisa aceitar as mesmas variações, senão cai
+      // no fallback de chat mesmo com o usuário já aprovado.
+      var status = ag ? String(ag.status || '').toLowerCase() : '';
+      var emRegistro = (status === 'in_registration');
+      var aprovadoParaJornada = (status === 'confirmed' || status === 'in_registration' ||
+                                  status === 'approved' || status === 'aprovado');
+
+      if (ag && ag.scheduled_at) {
+        var agScheduled = ag.scheduled_at;
         var agTime = NaN;
         var match = agScheduled.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
         if (match) {
@@ -1025,15 +1036,15 @@
           ).getTime();
         }
 
-        if (!isNaN(agTime) && agTime > Date.now() && dados.agendamento.status !== 'IN_REGISTRATION') {
-          abrirModalCountdown(dados.agendamento);
+        if (!isNaN(agTime) && agTime > Date.now() && !emRegistro) {
+          abrirModalCountdown(ag);
           return;
         }
+      }
 
-        if (dados.agendamento.status === 'CONFIRMED' || dados.agendamento.status === 'IN_REGISTRATION') {
-          abrirTimeline(dados);
-          return;
-        }
+      if (aprovadoParaJornada) {
+        abrirTimeline(dados);
+        return;
       }
 
       iniciarTelaDeChat(dados);
