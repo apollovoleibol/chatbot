@@ -1400,7 +1400,7 @@
         s.d.innerHTML = '';
       });
 
-      const setCompleted = i => { steps[i].w.classList.add('completed'); steps[i].d.innerHTML = SVG_CHECK; };
+      const setCompleted = i => { steps[i].w.classList.remove('blocked','loading','error'); steps[i].w.classList.add('completed'); steps[i].d.innerHTML = SVG_CHECK; };
       const setBlocked   = i => { steps[i].w.classList.add('blocked');   steps[i].d.innerHTML = SVG_LOCK; };
 
       setCompleted(0);
@@ -1415,10 +1415,12 @@
         window.launchConfetti();
       } else if (status === 'approved' || status === 'aprovado' || status === 'in_registration') {
         setCompleted(1); setCompleted(2);
+        steps[3].w.classList.remove('blocked');
         steps[3].w.classList.add('active','pulsing','group'); steps[3].d.innerHTML = SVG_UNLOCK;
         targetDotId = 'dot4';
       } else if (status === 'rejected' || status === 'reprovado') {
         setCompleted(1);
+        steps[2].w.classList.remove('blocked');
         steps[2].w.classList.add('error'); steps[2].d.innerHTML = SVG_CROSS;
         targetDotId = 'dot3';
       } else {
