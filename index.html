@@ -601,11 +601,14 @@
           <form id="dynamicForm" class="space-y-6 flex flex-col"></form>
         </div>
 
-        <div class="absolute bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-[#0a0e1b]/90 border-t border-gray-100 dark:border-white/5 flex gap-3">
-          <button type="button" id="btnBack" class="hidden h-[54px] px-6 rounded-[18px] bg-black/5 dark:bg-white/10 text-apollo-navy dark:text-white font-bold items-center justify-center">←</button>
-          <button type="button" id="btnNext" class="btn flex-1 bg-gradient-to-r from-[#FF554A] to-[#EE4036] text-white font-bold rounded-[18px] h-[54px] flex items-center justify-center shadow-lg gap-2">
-            <span id="btnNextText">Continuar</span>
-          </button>
+        <div class="absolute bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-[#0a0e1b]/90 border-t border-gray-100 dark:border-white/5 flex flex-col gap-2">
+          <p id="fwSubmitError" class="hidden text-[12px] font-semibold text-apollo-red text-center leading-snug"></p>
+          <div class="flex gap-3">
+            <button type="button" id="btnBack" class="hidden h-[54px] px-6 rounded-[18px] bg-black/5 dark:bg-white/10 text-apollo-navy dark:text-white font-bold items-center justify-center">←</button>
+            <button type="button" id="btnNext" class="btn flex-1 bg-gradient-to-r from-[#FF554A] to-[#EE4036] text-white font-bold rounded-[18px] h-[54px] flex items-center justify-center shadow-lg gap-2">
+              <span id="btnNextText">Continuar</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1960,6 +1963,8 @@
     function fwSubmit() {
       const btn = document.getElementById('btnNext');
       const btnText = document.getElementById('btnNextText');
+      const errEl = document.getElementById('fwSubmitError');
+      errEl.classList.add('hidden'); errEl.textContent = '';
       btn.disabled = true;
       btnText.innerHTML = '<span class="btn-spinner"></span> Enviando...';
       const ag = window._dadosCadastro && window._dadosCadastro.agendamento;
@@ -1968,6 +1973,8 @@
         .then(function(){ fwShowSuccess(fwData.nome_atleta || ''); })
         .catch(function(err){
           console.error('[ERRO Cadastro]', err);
+          errEl.textContent = (err && err.message) || 'Não foi possível concluir o cadastro. Tente novamente.';
+          errEl.classList.remove('hidden');
           btn.disabled = false;
           btnText.textContent = 'Tentar novamente';
         });
