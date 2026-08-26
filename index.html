@@ -608,6 +608,9 @@
             <button type="button" id="btnNext" class="btn flex-1 bg-gradient-to-r from-[#FF554A] to-[#EE4036] text-white font-bold rounded-[18px] h-[54px] flex items-center justify-center shadow-lg gap-2">
               <span id="btnNextText">Continuar</span>
             </button>
+            <button type="button" id="btnCopyLog" class="hidden h-[54px] px-4 rounded-[18px] bg-black/5 dark:bg-white/10 text-apollo-navy dark:text-white font-bold items-center justify-center flex-shrink-0" title="Copiar log de diagnóstico">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -622,21 +625,98 @@
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwP7PIxTfru0hdlyi_STMkSWQIE-FeocXcJmbLhmmonR6Cmp9IJZ7j0D8bNUgwk-gDI/exec';
     const FRONTEND_SECRET = 'apollo-secret-2026';
 
+    // =========================================================
+    // LOG DE DIAGNÓSTICO DO CADASTRO (em memória, nunca enviado
+    // a lugar nenhum — só existe para o botão "Copiar log")
+    // =========================================================
+    const cadastroLog = [];
+    function logCadastro(tag, data) {
+      const entry = { t: new Date().toISOString(), tag, data: data !== undefined ? data : null };
+      cadastroLog.push(entry);
+      try { console.log('[cadastro-log]', tag, data); } catch(e) {}
+    }
+    function safeStringify(v) {
+      try { return JSON.stringify(v, null, 2); } catch(e) { return String(v); }
+    }
+    function getCadastroLogText() {
+      const header = 'Apollo — Log de diagnóstico do cadastro\nGerado em: ' + new Date().toISOString()
+        + '\nUser-Agent: ' + navigator.userAgent + '\n';
+      const body = cadastroLog.map(function(e) {
+        return '[' + e.t + '] ' + e.tag + '\n' + (typeof e.data === 'string' ? e.data : safeStringify(e.data));
+      }).join('\n\n---\n\n');
+      return header + '\n' + body;
+    }
+    async function copyCadastroLog() {
+      const text = getCadastroLogText();
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        // Fallback para WebViews (ex.: navegador interno do WhatsApp) sem Clipboard API
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          return true;
+        } catch (e2) {
+          logCadastro('copyCadastroLog:falhou', { message: e2.message });
+          return false;
+        }
+      }
+    }
+    window.addEventListener('error', function(ev) {
+      logCadastro('window.onerror', {
+        message: ev.message, filename: ev.filename, lineno: ev.lineno, colno: ev.colno,
+        stack: ev.error && ev.error.stack
+      });
+    });
+    window.addEventListener('unhandledrejection', function(ev) {
+      const r = ev.reason;
+      logCadastro('unhandledrejection', { reason: (r && (r.stack || r.message)) || String(r) });
+    });
+
     async function callBackend(action, payload) {
       const formData = new URLSearchParams();
       formData.append('secret', FRONTEND_SECRET);
       formData.append('action', action);
       formData.append('payload', JSON.stringify(payload));
 
-      const response = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString()
-      });
+      logCadastro('callBackend:request', { action, payload, url: WEB_APP_URL });
 
-      if (!response.ok) throw new Error('Falha na comunicação de rede com a API.');
-      const data = await response.json();
-      if (!data.sucesso) throw new Error(data.erro || 'Erro interno no backend.');
+      let response;
+      try {
+        response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString()
+        });
+      } catch (networkErr) {
+        logCadastro('callBackend:network-error', { message: networkErr.message, stack: networkErr.stack });
+        throw new Error('Falha na comunicação de rede com a API.');
+      }
+
+      const rawText = await response.text();
+      logCadastro('callBackend:response', { action, httpStatus: response.status, ok: response.ok, rawBody: rawText });
+
+      if (!response.ok) throw new Error('Falha na comunicação de rede com a API. (HTTP ' + response.status + ')');
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        logCadastro('callBackend:parse-error', { message: parseErr.message, rawBody: rawText });
+        throw new Error('Resposta inesperada do servidor.');
+      }
+
+      if (!data.sucesso) {
+        logCadastro('callBackend:backend-error', { action, erro: data.erro, debug: data.debug || null });
+        throw new Error(data.erro || 'Erro interno no backend.');
+      }
 
       return data.dados;
     }
@@ -1702,12 +1782,19 @@
       btnNext.style.display = '';
       btnNext.disabled = false;
       document.getElementById('btnCancelForm').style.display = '';
+      const ag = window._dadosCadastro && window._dadosCadastro.agendamento;
+      logCadastro('fwInit', {
+        totalPaginas: fwPages.length,
+        agendamento_id: ag && ag.id, agendamento_team_id: ag && ag.team_id,
+        agendamento_target_team: ag && ag.target_team, agendamento_minor_name: ag && ag.minor_name
+      });
       fwRenderPage();
     }
 
     function fwRenderPage() {
       const page = fwPages[fwPageIndex];
       const total = fwPages.length;
+      logCadastro('fwRenderPage', { pageIndex: fwPageIndex, pageId: page.id, total });
       const pct = Math.round((fwPageIndex / (total-1)) * 100);
       document.getElementById('formProgressFill').style.width = pct+'%';
       document.getElementById('formProgressText').textContent = 'Etapa '+(fwPageIndex+1)+' de '+total;
@@ -1947,6 +2034,7 @@
         }
       });
 
+      logCadastro('fwCollectAndValidate', { pageId: page.id, valid, fwDataSnapshot: fwData });
       return valid;
     }
 
@@ -1960,21 +2048,38 @@
       if(fwPageIndex > 0){ fwPageIndex--; fwRenderPage(); }
     };
 
+    document.getElementById('btnCopyLog').addEventListener('click', async function() {
+      const ok = await copyCadastroLog();
+      const original = this.innerHTML;
+      this.innerHTML = ok
+        ? '<span class="text-[11px] font-bold px-1">Copiado!</span>'
+        : '<span class="text-[11px] font-bold px-1">Falhou</span>';
+      setTimeout(() => { this.innerHTML = original; }, 2000);
+    });
+
     function fwSubmit() {
       const btn = document.getElementById('btnNext');
       const btnText = document.getElementById('btnNextText');
       const errEl = document.getElementById('fwSubmitError');
+      const copyBtn = document.getElementById('btnCopyLog');
       errEl.classList.add('hidden'); errEl.textContent = '';
+      copyBtn.style.display = 'none';
       btn.disabled = true;
       btnText.innerHTML = '<span class="btn-spinner"></span> Enviando...';
       const ag = window._dadosCadastro && window._dadosCadastro.agendamento;
       if(ag && ag.team_id) fwData.team_id = ag.team_id;
+      logCadastro('fwSubmit:start', { fwData, agendamento_id: ag && ag.id, agendamento_team_id: ag && ag.team_id });
       callBackend('processarCadastro', { formData: fwData })
-        .then(function(){ fwShowSuccess(fwData.nome_atleta || ''); })
+        .then(function(){
+          logCadastro('fwSubmit:success', {});
+          fwShowSuccess(fwData.nome_atleta || '');
+        })
         .catch(function(err){
+          logCadastro('fwSubmit:error', { message: err && err.message, stack: err && err.stack });
           console.error('[ERRO Cadastro]', err);
           errEl.textContent = (err && err.message) || 'Não foi possível concluir o cadastro. Tente novamente.';
           errEl.classList.remove('hidden');
+          copyBtn.style.display = 'flex';
           btn.disabled = false;
           btnText.textContent = 'Tentar novamente';
         });
