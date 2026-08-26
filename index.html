@@ -1639,6 +1639,20 @@
       r=(s*10)%11; if(r===10||r===11) r=0;
       return r===parseInt(d[10]);
     }
+    // Valida não só o FORMATO "DD/MM/AAAA" (a regex antiga aceitava datas
+    // inexistentes como "00/00/0000" ou "31/02/2020", que a coluna DATE do
+    // Postgres rejeita com "date/time field value out of range" — erro que só
+    // aparecia no banco, nunca no formulário).
+    function fwIsValidDateBR(v) {
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
+      if(!m) return false;
+      const day = parseInt(m[1],10), month = parseInt(m[2],10), year = parseInt(m[3],10);
+      if(year < 1900 || year > (new Date().getFullYear())) return false;
+      if(month < 1 || month > 12) return false;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      if(day < 1 || day > daysInMonth) return false;
+      return new Date(year, month-1, day, 12, 0, 0) <= new Date();
+    }
     function fwToggleCond(id, show) {
       const el = document.getElementById('cond_'+id);
       if(el) el.classList.toggle('hidden', !show);
@@ -2005,7 +2019,7 @@
           const el = document.querySelector('[name="f_'+item.id+'"]');
           const v = el ? el.value.trim() : '';
           if(!v){ if(item.required) showErr(); }
-          else if(!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) showErr('Data inválida. Use DD/MM/AAAA.');
+          else if(!fwIsValidDateBR(v)) showErr('Data inválida. Use DD/MM/AAAA.');
           else { fwData[item.id]=v; hideErr(); }
           return;
         }
