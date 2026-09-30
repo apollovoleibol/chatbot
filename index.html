@@ -432,6 +432,13 @@
 
       <div id="chat-view" class="hidden absolute inset-0 flex-col overflow-hidden z-20 pt-[76px]">
         <div id="chat-history" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
+        <div id="chatSurvey" hidden class="px-5 py-2 text-center text-sm text-apollo-navy dark:text-white border-t border-black/10 dark:border-white/10">
+          <p>Como foi sua experiência com o assistente? <span class="opacity-60">Opcional</span></p>
+          <div class="flex justify-center gap-3 mt-1" role="group" aria-label="Avaliação do assistente de 1 a 5">
+            <button type="button" onclick="chatRate(1)" aria-label="Nota 1 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">1</button><button type="button" onclick="chatRate(2)" aria-label="Nota 2 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">2</button><button type="button" onclick="chatRate(3)" aria-label="Nota 3 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">3</button><button type="button" onclick="chatRate(4)" aria-label="Nota 4 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">4</button><button type="button" onclick="chatRate(5)" aria-label="Nota 5 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">5</button>
+          </div><p class="text-xs opacity-70">1: muito insatisfeito · 5: muito satisfeito</p>
+          <p id="chatSurveyStatus" role="status" class="text-xs mt-1"></p>
+        </div>
 
         <div id="chatTypingBg" class="chat-typing-bg">
           <div class="wave-blob wave-1"></div>
@@ -618,6 +625,7 @@
     </main>
   </div>
 
+  <script src="metrics.js?v=1"></script>
   <script>
     // =========================================================
     // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO
@@ -686,7 +694,7 @@
       formData.append('action', action);
       formData.append('payload', JSON.stringify(payload));
 
-      logCadastro('callBackend:request', { action, payload, url: WEB_APP_URL });
+      logCadastro('callBackend:request', { action });
 
       let response;
       try {
@@ -701,7 +709,7 @@
       }
 
       const rawText = await response.text();
-      logCadastro('callBackend:response', { action, httpStatus: response.status, ok: response.ok, rawBody: rawText });
+      logCadastro('callBackend:response', { action, httpStatus: response.status, ok: response.ok });
 
       if (!response.ok) throw new Error('Falha na comunicação de rede com a API. (HTTP ' + response.status + ')');
 
@@ -973,7 +981,7 @@
       }
     });
     document.getElementById('waModalCancel').onclick = () => document.getElementById('waModal').classList.remove('open');
-    document.getElementById('waModalConfirm').onclick = () => { window.open(WA_LINK, '_blank'); document.getElementById('waModal').classList.remove('open'); };
+    document.getElementById('waModalConfirm').onclick = chatOpenHandoff;
 
     let currentCoachWa = '';
     function abrirModalCoach(wa) {
@@ -1027,6 +1035,7 @@
 
       document.getElementById('chat-history').innerHTML = '';
       messageContext = [];
+      chatMetricsStart(null);
       chatAtBottom = true;
 
       const btn = document.getElementById('btnSubmitForm');
@@ -1076,8 +1085,8 @@
         waEl.disabled   = false;
       }
 
-      callBackend('carregarDadosIniciais', { whatsapp: userData.whatsapp })
-        .then(dados => processarTelaInicial(dados || {}))
+      callBackend('carregarDadosIniciais', { whatsapp: userData.whatsapp, name: userData.name })
+        .then(dados => { chatMetricsStart(dados); processarTelaInicial(dados || {}); })
         .catch(err => {
           console.error('[ERRO Login]', err);
           onFail();
@@ -1231,12 +1240,12 @@
       appendMessage('client', text);
       tx.value = '';
       tx.style.height = '52px';
-      messageContext.push({ role: 'user', parts: [{ text }] });
+      messageContext.push({ role: 'user', parts: [{ text }], timestamp: new Date().toISOString() });
 
       disableInput();
       setTyping(true);
 
-      callBackend('processChatMessage', { history: messageContext, userData: userData })
+      callBackend('processChatMessage', { history: messageContext, userData: userData, metrics: CHAT_METRICS, requestId: chatMetricId() })
         .then(response => {
           setTyping(false);
           enableInput();
@@ -1244,7 +1253,8 @@
           const doConfetti = (response && typeof response === 'object') ? !!response.confetti : false;
 
           appendMessage('agent', botText);
-          messageContext.push({ role: 'model', parts: [{ text: botText }] });
+          chatMetricsOffer(response);
+          messageContext.push({ role: 'model', parts: [{ text: botText }], timestamp: new Date().toISOString() });
 
           if (doConfetti) {
             setTimeout(() => window.launchConfetti(), 600);
