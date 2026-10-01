@@ -432,7 +432,8 @@
 
       <div id="chat-view" class="hidden absolute inset-0 flex-col overflow-hidden z-20 pt-[76px]">
         <div id="chat-history" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
-        <div id="chatSurvey" hidden class="px-5 py-2 text-center text-sm text-apollo-navy dark:text-white border-t border-black/10 dark:border-white/10">
+        <div id="chatSurvey" hidden class="relative px-10 py-2 text-center text-sm text-apollo-navy dark:text-white border-t border-black/10 dark:border-white/10">
+          <button type="button" onclick="chatSurveyDismiss()" aria-label="Fechar pesquisa de satisfação" title="Fechar" class="absolute top-1.5 right-2 w-8 h-8 rounded-full text-lg leading-none opacity-60 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10">&times;</button>
           <p>Como foi sua experiência com o assistente? <span class="opacity-60">Opcional</span></p>
           <div class="flex justify-center gap-3 mt-1" role="group" aria-label="Avaliação do assistente de 1 a 5">
             <button type="button" onclick="chatRate(1)" aria-label="Nota 1 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">1</button><button type="button" onclick="chatRate(2)" aria-label="Nota 2 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">2</button><button type="button" onclick="chatRate(3)" aria-label="Nota 3 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">3</button><button type="button" onclick="chatRate(4)" aria-label="Nota 4 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">4</button><button type="button" onclick="chatRate(5)" aria-label="Nota 5 de 5" class="w-9 h-9 rounded-lg border border-current hover:bg-black/10 disabled:opacity-40">5</button>
@@ -625,7 +626,7 @@
     </main>
   </div>
 
-  <script src="metrics.js?v=1"></script>
+  <script src="metrics.js?v=2"></script>
   <script>
     // =========================================================
     // CONFIGURAÇÕES DA API E HELPER DE REQUISIÇÃO
