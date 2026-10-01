@@ -16,3 +16,8 @@ Aplicar a migração 022 no projeto Supabase da Apollo, salvar Code.gs e Metrics
 As funções de coleta são exclusivas de service_role. Usuários autenticados recebem apenas os agregados ou a fila permitida por seu perfil; anônimos não leem a telemetria. A fila permite que Administrador, Atendimento e Coordenação com permissão em Agendamentos registrem respostas. Técnicos e atletas não recebem essa fila global.
 
 Se a coleta falhar, o chat continua respondendo e o Apps Script registra METRICS_ERROR sem telefone, token ou conteúdo. Verificar esses registros em Execuções; não interpretar ausência de amostras como zero segundos.
+
+
+## Implantação em produção
+
+30/09/2026: migração 022 aplicada; `Code.gs` e `Metrics.gs` desta branch salvos no projeto Apps Script e publicados na implantação existente como versão 121 (mesma URL do Web App). `SUPABASE_KEY` já é service_role, então `SUPABASE_SERVICE_KEY` não foi necessária. Diagnóstico: `HUDDLE_METRICS_OK`. Pendente: publicar `index.html` + `metrics.js` (merge em `main`).
