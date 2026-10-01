@@ -1,9 +1,15 @@
 // Huddle telemetry v1. All timestamps come from PostgreSQL, never browser clocks.
 var CHAT_METRICS_CONTEXT = null;
+// As funções de coleta só aceitam service_role. Se SUPABASE_KEY for a chave pública (anon), cadastre a
+// chave de servidor na propriedade SUPABASE_SERVICE_KEY (Configurações do projeto → Propriedades do script).
+function metricsKey_() {
+  return PropertiesService.getScriptProperties().getProperty('SUPABASE_SERVICE_KEY') || SUPABASE_KEY;
+}
 function metricsRpc_(name, payload) {
+  var key = metricsKey_();
   var response = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/rpc/' + name, {
     method: 'post', contentType: 'application/json',
-    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
+    headers: { apikey: key, Authorization: 'Bearer ' + key },
     payload: JSON.stringify(payload), muteHttpExceptions: true
   });
   if (response.getResponseCode() >= 300) throw new Error('Telemetry HTTP ' + response.getResponseCode());

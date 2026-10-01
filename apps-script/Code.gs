@@ -453,18 +453,29 @@ function registrarAgendamento(whatsapp, nome, data) {
     status: 'CONFIRMED', reschedule_count: 0, minor_name: data.nome_menor || null,
     team_id: teamId
   });
-  try {
-    var res = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/tryouts', {
+  // O id do agendamento só é pedido de volta quando há sessão de métricas. Se a chave não puder ler a
+  // linha criada (401/403), o PostgreSQL desfaz o INSERT inteiro; então repetimos com return=minimal
+  // para que o agendamento nunca dependa da coleta de métricas.
+  var inserir = function(prefer) {
+    return UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/tryouts', {
       method: 'post',
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'Prefer': prefer
       },
       payload: payload, muteHttpExceptions: true, deadline: FETCH_DEADLINE
     });
+  };
+  try {
+    var res = inserir(CHAT_METRICS_CONTEXT ? 'return=representation' : 'return=minimal');
     var code = res.getResponseCode();
+    if (CHAT_METRICS_CONTEXT && (code === 401 || code === 403)) {
+      Logger.log('[METRICS_ERROR] booking id not readable with current key; retrying without representation');
+      res = inserir('return=minimal');
+      code = res.getResponseCode();
+    }
     if (code >= 400) {
       Logger.log('[ERRO registrarAgendamento] HTTP ' + code + ' — ' + res.getContentText());
     }

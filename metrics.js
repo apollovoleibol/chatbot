@@ -39,6 +39,8 @@ async function chatRecordHandoff() {
 function chatOpenHandoff() {
   window.open(WA_LINK, '_blank', 'noopener,noreferrer');
   document.getElementById('waModal').classList.remove('open');
+  // Sem sessão de medição (backend antigo ou coleta indisponível): o atendimento segue normal, sem avisos ao usuário.
+  if (!CHAT_METRICS) return;
   chatRecordHandoff().catch(() => {
     const history = document.getElementById('chat-history');
     const notice = document.createElement('p');

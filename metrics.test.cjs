@@ -48,3 +48,16 @@ test('booking is recorded only after successful persisted insert, including exac
   code=500;assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time'}),false);
   assert.equal(metrics.length,1);
 });
+test('booking never depends on metrics: no session uses return=minimal; unreadable representation retries',()=>{
+  const prefs=[];let codes=[];
+  const c=vm.createContext({PropertiesService:{getScriptProperties:()=>({getProperty:()=>''})},
+    Logger:{log(){}},UrlFetchApp:{fetch:(u,o)=>{prefs.push(o.headers.Prefer);const code=codes.shift();return {getResponseCode:()=>code,getContentText:()=>''};}}});
+  vm.runInContext(fs.readFileSync('apps-script/Code.gs','utf8'),c);
+  c.buscarTeamId=()=> 'team-1';c.metricsSafeEvent_=()=>true;
+  codes=[201];c.CHAT_METRICS_CONTEXT=null;
+  assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time'}),true);
+  assert.deepEqual(prefs,['return=minimal']);
+  prefs.length=0;codes=[403,201];c.CHAT_METRICS_CONTEXT={id:'session'};
+  assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time'}),true);
+  assert.deepEqual(prefs,['return=representation','return=minimal']);
+});
