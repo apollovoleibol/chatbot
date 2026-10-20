@@ -162,7 +162,10 @@ function chamarGemini(payload) {
 // =======================================================================
 function carregarDadosIniciais(whatsapp) {
   var agendamento  = obterAgendamentoAtivo(whatsapp);
-  var isCadastrado = verificarCadastroAtleta(whatsapp);
+  // O agendamento aprovado aponta para a ficha criada no cadastro (tryouts.athlete_id).
+  // Sem o vínculo, compara o telefone do agendamento com o do atleta e o do responsável:
+  // em equipes de base o cadastro costuma ter o número do atleta, não o de quem agendou.
+  var isCadastrado = !!(agendamento && agendamento.athlete_id) || verificarCadastroAtleta(whatsapp);
   var dadosChat    = buscarDadosChatSupabase(whatsapp);
 
   var statusTryout = agendamento ? agendamento.status : 'PENDING';
@@ -240,14 +243,14 @@ function verificarCadastroAtleta(whatsapp) {
 function _buscarAthletesPorTelefone(telefone) {
   var alvo = normalizarTelefoneComparavel(telefone);
   if (!alvo) return null;
-  var url = SUPABASE_URL + '/rest/v1/athletes?select=id,phone';
+  var url = SUPABASE_URL + '/rest/v1/athletes?select=id,phone,parent_phone&limit=5000';
   var r = JSON.parse(UrlFetchApp.fetch(url, {
     method: 'get',
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
     muteHttpExceptions: true, deadline: FETCH_DEADLINE
   }).getContentText());
   if (!r || !r.length) return null;
-  var achados = r.filter(function(a) { return normalizarTelefoneComparavel(a.phone) === alvo; });
+  var achados = r.filter(function(a) { return normalizarTelefoneComparavel(a.phone) === alvo || normalizarTelefoneComparavel(a.parent_phone) === alvo; });
   return achados.length > 0 ? achados : null;
 }
 
@@ -411,7 +414,9 @@ function _buscarTryoutPorTelefone(telefone) {
   // Sem filtro de igualdade por telefone no banco (formatos variam entre
   // quem gravou o registro) — busca os mais recentes não-cancelados e
   // compara o telefone normalizado em memória.
-  var url = SUPABASE_URL + '/rest/v1/tryouts?status=not.in.(CANCELLED,CANCELED)&order=created_at.desc&limit=200';
+  // Sem limite curto: com mais de 200 agendamentos, os aprovados mais antigos não eram encontrados
+  // e o atleta caía no chat em vez de abrir a jornada de cadastro.
+  var url = SUPABASE_URL + '/rest/v1/tryouts?status=not.in.(CANCELLED,CANCELED)&order=created_at.desc&limit=5000';
   var r = JSON.parse(UrlFetchApp.fetch(url, {
     method: 'get',
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
@@ -926,10 +931,25 @@ function processarCadastro(formData) {
     };
     const response = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/athletes', {
       method: "post",
-      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=representation" },
       payload: JSON.stringify(payload), muteHttpExceptions: true, deadline: FETCH_DEADLINE
     });
-    if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) return { sucesso: true };
+    if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+      // Liga a ficha ao agendamento (o banco também tenta pelo telefone/nome; aqui é exato)
+      try {
+        var criado = JSON.parse(response.getContentText() || '[]');
+        var athleteId = criado && criado[0] && criado[0].id;
+        var tryoutId = String(formData.tryout_id || '');
+        if (athleteId && /^[0-9a-f-]{36}$/i.test(tryoutId)) {
+          UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/tryouts?id=eq.' + tryoutId, {
+            method: 'patch',
+            headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+            payload: JSON.stringify({ athlete_id: athleteId }), muteHttpExceptions: true, deadline: FETCH_DEADLINE
+          });
+        }
+      } catch (eVinculo) { Logger.log('[AVISO processarCadastro] vínculo com o agendamento: ' + eVinculo); }
+      return { sucesso: true };
+    }
     var httpCode = response.getResponseCode();
     var httpBody = response.getContentText();
     Logger.log('[ERRO processarCadastro] HTTP ' + httpCode + ' — ' + httpBody);

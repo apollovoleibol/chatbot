@@ -2093,6 +2093,7 @@
       btnText.innerHTML = '<span class="btn-spinner"></span> Enviando...';
       const ag = window._dadosCadastro && window._dadosCadastro.agendamento;
       if(ag && ag.team_id) fwData.team_id = ag.team_id;
+      if(ag && ag.id) fwData.tryout_id = ag.id;
       logCadastro('fwSubmit:start', { fwData, agendamento_id: ag && ag.id, agendamento_team_id: ag && ag.team_id });
       callBackend('processarCadastro', { formData: fwData })
         .then(function(){
