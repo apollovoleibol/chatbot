@@ -41,23 +41,27 @@ test('booking is recorded only after successful persisted insert, including exac
   const metrics=[];let code=201;
   const c=vm.createContext({PropertiesService:{getScriptProperties:()=>({getProperty:()=>''})},
     Logger:{log(){}},UrlFetchApp:{fetch:()=>({getResponseCode:()=>code,getContentText:()=>JSON.stringify([{id:'tryout-1'}])})}});
+  vm.runInContext(fs.readFileSync('apps-script/BookingConsent.gs','utf8'),c);
   vm.runInContext(fs.readFileSync('apps-script/Code.gs','utf8'),c);
+  c.buscarEquipeAgendamento_=()=>({id:'team-1',name:'Time',category:'Adulto',age_min:18});
   c.buscarTeamId=()=> 'team-1';c.CHAT_METRICS_CONTEXT={id:'session'};c.metricsSafeEvent_=(ctx,kind,data)=>metrics.push({kind,data});
-  assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time',data:'2026-10-10T12:00:00-03:00'}),true);
+  assert.equal(c.registrarAgendamento('41999999999','Contato Teste',{equipe:'Time',data:'2026-10-10T12:00:00-03:00'}),true);
   assert.equal(metrics[0].data.tryout,'tryout-1');
-  code=500;assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time'}),false);
+  code=500;assert.equal(c.registrarAgendamento('41999999999','Contato Teste',{equipe:'Time'}),false);
   assert.equal(metrics.length,1);
 });
 test('booking never depends on metrics: no session uses return=minimal; unreadable representation retries',()=>{
   const prefs=[];let codes=[];
   const c=vm.createContext({PropertiesService:{getScriptProperties:()=>({getProperty:()=>''})},
     Logger:{log(){}},UrlFetchApp:{fetch:(u,o)=>{prefs.push(o.headers.Prefer);const code=codes.shift();return {getResponseCode:()=>code,getContentText:()=>''};}}});
+  vm.runInContext(fs.readFileSync('apps-script/BookingConsent.gs','utf8'),c);
   vm.runInContext(fs.readFileSync('apps-script/Code.gs','utf8'),c);
+  c.buscarEquipeAgendamento_=()=>({id:'team-1',name:'Time',category:'Adulto',age_min:18});
   c.buscarTeamId=()=> 'team-1';c.metricsSafeEvent_=()=>true;
   codes=[201];c.CHAT_METRICS_CONTEXT=null;
-  assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time'}),true);
+  assert.equal(c.registrarAgendamento('41999999999','Contato Teste',{equipe:'Time'}),true);
   assert.deepEqual(prefs,['return=minimal']);
   prefs.length=0;codes=[403,201];c.CHAT_METRICS_CONTEXT={id:'session'};
-  assert.equal(c.registrarAgendamento('41999999999','Contato',{equipe:'Time'}),true);
+  assert.equal(c.registrarAgendamento('41999999999','Contato Teste',{equipe:'Time'}),true);
   assert.deepEqual(prefs,['return=representation','return=minimal']);
 });
