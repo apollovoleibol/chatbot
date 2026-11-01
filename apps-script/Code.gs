@@ -447,10 +447,10 @@ function buscarTeamId(equipeNome) {
 
 function registrarAgendamento(whatsapp, nome, data) {
   var team = buscarEquipeAgendamento_(data.equipe);
-  var booking = bookingForTeam_(team,nome,data);
+  var booking = bookingForTeam_(team,nome,data,whatsapp);
   var teamId = team.id;
-  data.confirmacaoResponsavelPendente = booking.status === 'PENDING';
   data.nome_menor = booking.minor_name;
+  data.whatsapp_responsavel = booking.guardian_phone || null;
   var payload = JSON.stringify({
     whatsapp_phone: whatsapp, name: booking.name, target_team: team.name,
     scheduled_at: data.data, target_location: data.local,
@@ -498,8 +498,6 @@ function atualizarAgendamentoExistente(novaData, qtdAtual, hoje) {
   try {
     var existing=obterAgendamentoAtivo(BOOKING_CONTACT_PHONE);
     if(!existing || existing.id!==novaData.id) return false;
-    var team=buscarEquipeAgendamento_(novaData.equipe);
-    var booking=bookingForTeam_(team,existing.name,{nome_menor:existing.minor_name,nome_responsavel:existing.name});
     var novoTeamId = buscarTeamId(novaData.equipe);
 
     var res = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/tryouts?id=eq.' + novaData.id, {
@@ -508,11 +506,10 @@ function atualizarAgendamentoExistente(novaData, qtdAtual, hoje) {
       payload: JSON.stringify({
         target_team: novaData.equipe, scheduled_at: novaData.data, target_location: novaData.local,
         team_id: novoTeamId,
-        reschedule_count: (qtdAtual || 0) + 1, last_rescheduled_at: hoje, status:booking.status, booking_consent:booking.booking_consent
+        reschedule_count: (qtdAtual || 0) + 1, last_rescheduled_at: hoje
       }),
       muteHttpExceptions: true, deadline: FETCH_DEADLINE
     });
-    if(res.getResponseCode()<400) BOOKING_LAST_RESULT=booking;
     return res.getResponseCode() < 400;
   } catch(e) { Logger.log('[ERRO atualizarAgendamentoExistente] ' + e); return false; }
 }
@@ -576,7 +573,7 @@ function enviarEmailAgendamento(dadosBooking, nomeResponsavel, whatsapp) {
     mensagem += "<tr><td style='" + td + "'><strong>Equipe</strong></td><td style='" + td + "'>" + (dadosBooking.equipe || '-') + "</td></tr>";
     mensagem += "<tr><td style='" + td + "'><strong>Data/Horário</strong></td><td style='" + td + "'>" + dataFormatada + "</td></tr>";
     mensagem += "<tr><td style='" + td + "'><strong>Local</strong></td><td style='" + td + "'>" + (dadosBooking.local || '-') + "</td></tr>";
-    if (dadosBooking.confirmacaoResponsavelPendente) mensagem += '<tr><td colspan="2">PENDENTE: atendimento deve confirmar com o responsável antes de autorizar a participação.</td></tr>';
+    if (dadosBooking.whatsapp_responsavel && consentPhone_(dadosBooking.whatsapp_responsavel) !== consentPhone_(whatsapp)) mensagem += "<tr><td style='" + td + "'><strong>WhatsApp do responsável</strong></td><td style='" + td + "'>" + dadosBooking.whatsapp_responsavel + " (agendamento feito pelo próprio atleta)</td></tr>";
     if (dadosBooking.nome_menor) mensagem += "<tr><td style='" + td + "'><strong>Atleta (Menor)</strong></td><td style='" + td + "'>" + dadosBooking.nome_menor + "</td></tr>";
     mensagem += "</table><br><p style='font-family:Arial,sans-serif;font-size:14px;color:#555;'><i>To the moon and beyond.</i></p><hr style='border:0;border-top:1px solid #ccc;'>";
     mensagem += "<table style='width:100%;max-width:400px;border-collapse:collapse;margin:20px 0;'><tr><td style='width:30%;text-align:left;vertical-align:middle;'><img src='https://drive.google.com/uc?export=view&id=1WBV8jkaSIoQoW5Y3OorkaV_7uIbLUBgj' alt='Logo' style='width:100px;height:auto;display:block;'></td><td style='width:70%;text-align:left;vertical-align:middle;padding-left:20px;'><p style='font-family:Arial,sans-serif;font-size:16px;color:#333333;margin:0;'>Assistente Virtual Apollo</p></td></tr></table>";
@@ -989,8 +986,8 @@ function recuperarAgendamentoDoHistorico(whatsapp, nome, history) {
   }).join('\n');
 
   var extractPrompt = 'Extraia os dados do agendamento que o bot e o usuário acabaram de concordar.\n' +
-    'Retorne APENAS UM JSON válido:\n{\n"equipe": "Nome completo",\n"data": "YYYY-MM-DDTHH:mm",\n"local": "Endereço",\n"nome_menor": "Nome Sobrenome ou null", "nome_responsavel": "Nome completo do responsavel ou null"\n}\n' +
-    'Nunca invente ou deduza o nome do responsável a partir do nome de entrada. Só extraia o responsável que foi explicitamente informado, diferente do menor.\n' +
+    'Retorne APENAS UM JSON válido:\n{\n"equipe": "Nome completo",\n"data": "YYYY-MM-DDTHH:mm",\n"local": "Endereço",\n"nome_menor": "Nome Sobrenome ou null", "quem_agenda": "RESPONSAVEL ou ATLETA ou null", "nome_responsavel": "Nome completo do responsavel ou null", "whatsapp_responsavel": "DDD e numero do responsavel ou null", "relacao": "PAI_MAE ou RESPONSAVEL_LEGAL ou null"\n}\n' +
+    'Nunca invente ou deduza dados do responsável. Só extraia o que foi explicitamente informado na conversa.\n' +
     'Se os dados estiverem vagos, retorne {"erro": "insuficiente"}.\nChat:\n' + trechoHistorico;
 
   try {
@@ -1064,7 +1061,7 @@ function processChatMessage(history, userData) {
         if (infoExata) { bData.equipe = infoExata.equipe; bData.local = infoExata.local; }
         var validacao = validarNomeMenor(bData.equipe, bData.nome_menor);
         var namesIssue = null;
-        try { bookingForTeam_(buscarEquipeAgendamento_(bData.equipe),userData.name,bData); } catch(nameError) { namesIssue=nameError.message; }
+        try { bookingForTeam_(buscarEquipeAgendamento_(bData.equipe),userData.name,bData,userData.whatsapp); } catch(nameError) { namesIssue=nameError.message; }
         if (!validacao.valido) {
           botText = 'Falta só um detalhe! Para a ' + (bData.equipe || 'turma') + ', preciso do **nome completo (nome e sobrenome)** do aluno(a). Pode me informar? 📝';
           fase = FASE.INICIO;
@@ -1126,8 +1123,8 @@ function processChatMessage(history, userData) {
 
     if (!tagProcessada && !isAgendamentoAtivo && fase !== FASE.CONCLUIDO) fase = FASE.INICIO;
 
-    var pendingGuardian = (BOOKING_LAST_RESULT && BOOKING_LAST_RESULT.status === 'PENDING') || (!BOOKING_LAST_RESULT && infoAgendamento && infoAgendamento.status === 'PENDING' && infoAgendamento.minor_name);
-    if(pendingGuardian) botText = (BOOKING_LAST_RESULT ? 'Pedido de agendamento registrado. ' : botText + '\n\n') + 'A participação do menor está pendente: o atendimento precisa confirmar com o pai, mãe ou responsável legal antes de autorizar o teste.';
+    var pendingGuardian = !BOOKING_LAST_RESULT && infoAgendamento && infoAgendamento.status === 'PENDING' && infoAgendamento.minor_name;
+    if(pendingGuardian) botText = botText + '\n\nPara confirmar este agendamento, nosso atendimento vai falar com o pai, mãe ou responsável legal do atleta.';
     var botTime = new Date().toISOString();
     salvarHistoricoSupabase(
       userData.whatsapp, userData.name,
@@ -1176,12 +1173,17 @@ function montarPromptMestre(userData, hoje, infoAgendamento) {
     '📋 MÁQUINA DE PASSOS (Siga estritamente esta ordem para Novos Agendamentos):\n' +
     'PASSO 1 (IDADE): Se o usuário disser que é para filho/filha/criança, pergunte: "Qual a idade dele(a)?". Só avançe após a resposta.\n' +
     'PASSO 2 (EQUIPE): Sabendo a idade (ou se for adulto), apresente as opções de Turmas adequadas do QUADRO. Peça para o usuário escolher UMA.\n' +
-    'PASSO 3 (NOMES): A categoria e idade da EQUIPE escolhida definem os campos. Em turma adulta, use o nome do próprio atleta e nome_menor:null; não peça responsável. Em turma de menores, peça NOME COMPLETO DO ATLETA e NOME COMPLETO DO PAI/MÃE OU RESPONSÁVEL LEGAL em perguntas separadas. Quem conversa pode ser o menor: nunca presuma que o nome de entrada é do responsável. Não aceite nomes iguais ou invente dados. O atendimento confirmará com o responsável antes de autorizar a participação.\n' +
+    'PASSO 3 (DADOS): A categoria e idade da EQUIPE escolhida definem os campos.\n' +
+    '- Turma adulta: use o nome do próprio atleta, nome_menor:null; não peça responsável.\n' +
+    '- Turma de menores: um menor de idade NUNCA pode ser agendado sem os dados do responsável legal maior de idade. Pergunte primeiro: "Você é o pai, mãe ou responsável legal do atleta?".\n' +
+    '  • Se SIM (quem_agenda: RESPONSAVEL): peça o NOME COMPLETO DO ATLETA, confirme o NOME COMPLETO de quem conversa (o responsável) e a relação (pai/mãe ou responsável legal). O WhatsApp do responsável é o número desta conversa.\n' +
+    '  • Se NÃO (é o próprio atleta ou outra pessoa; quem_agenda: ATLETA): peça o NOME COMPLETO DO ATLETA, o NOME COMPLETO DO PAI/MÃE OU RESPONSÁVEL LEGAL, o WHATSAPP DO RESPONSÁVEL com DDD (diferente do número desta conversa) e a relação. Explique com gentileza que, por ser menor de idade, o agendamento fica no nome do responsável e os avisos vão para o WhatsApp dele.\n' +
+    '  • Faça uma pergunta por vez. Não aceite nomes iguais para atleta e responsável, apelidos ou dados inventados. Sem esses dados, não avance para as datas.\n' +
     'PASSO 4 (DATAS): Mostre as "Datas Disponíveis" apenas da equipe escolhida. Peça para escolher UMA data.\n' +
     'PASSO 5 (PERGUNTA DE CONFIRMAÇÃO): Quando ele escolher a data, resuma (Equipe, Data, Horário e Nome) e PERGUNTE EXPLICITAMENTE: "Você confirma o agendamento?". (É PROIBIDO usar as palavras "confirmado" ou "registrado" nesta etapa).\n' +
-    'Para turma de menores, não diga vaga garantida, participação autorizada ou consentimento confirmado. Diga que o pedido ficará pendente de confirmação do responsável pelo atendimento.\n' +
-    'PASSO 6 (TAG FINAL): APENAS se o usuário respondeu "Sim" ou confirmou no Passo 5, para adultos diga "Agendamento confirmado!"; para menores diga "Pedido registrado, pendente de confirmação do responsável pelo atendimento". Coloque OBRIGATORIAMENTE esta tag no final da sua resposta:\n' +
-    '[BOOKING]{"equipe":"NOME DA EQUIPE","data":"YYYY-MM-DDTHH:mm","local":"Local","nome_menor":"Nome Sobrenome ou null","nome_responsavel":"Nome completo do responsavel ou null"}[/BOOKING]\n\n' +
+    'Para turma de menores, o resumo inclui o nome do atleta, o nome do responsável e o WhatsApp do responsável.\n' +
+    'PASSO 6 (TAG FINAL): APENAS se o usuário respondeu "Sim" ou confirmou no Passo 5, comemore dizendo "Agendamento confirmado!". Coloque OBRIGATORIAMENTE esta tag no final da sua resposta:\n' +
+    '[BOOKING]{"equipe":"NOME DA EQUIPE","data":"YYYY-MM-DDTHH:mm","local":"Local","nome_menor":"Nome Sobrenome ou null","quem_agenda":"RESPONSAVEL ou ATLETA ou null","nome_responsavel":"Nome completo do responsavel ou null","whatsapp_responsavel":"DDD e numero do responsavel ou null","relacao":"PAI_MAE ou RESPONSAVEL_LEGAL ou null"}[/BOOKING]\n\n' +
     '🏐 QUADRO OFICIAL DE EQUIPES E DATAS:\n' + quadro;
 }
 
